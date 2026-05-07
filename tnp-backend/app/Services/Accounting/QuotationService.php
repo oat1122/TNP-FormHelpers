@@ -175,9 +175,9 @@ class QuotationService
      * @param  string  $id  ID ของ Quotation ต้นฉบับ
      * @return array<string,mixed> ข้อมูลที่พร้อมสำหรับส่งให้ Frontend
      */
-    public function getDataForDuplication(string $id): array
+    public function getDataForDuplication(string $id, bool $preserveSignatures = false): array
     {
-        return $this->managementService->getDataForDuplication($id);
+        return $this->managementService->getDataForDuplication($id, $preserveSignatures);
     }
 
     /**

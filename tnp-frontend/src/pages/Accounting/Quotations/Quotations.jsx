@@ -279,6 +279,7 @@ const Quotations = () => {
                   initialData={quotationsPage.editData}
                   quotationId={quotationsPage.editQuotationId}
                   onSaveSuccess={quotationsPage.handleSaveEditSuccess}
+                  onSignatureUploaded={quotationsPage.handleSignatureUploaded}
                 />
               )}
 

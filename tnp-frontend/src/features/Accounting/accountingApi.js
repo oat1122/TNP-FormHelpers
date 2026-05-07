@@ -372,10 +372,16 @@ export const accountingApi = createApi({
       invalidatesTags: ["Quotation", "Dashboard"],
     }),
     getQuotationDuplicateData: builder.query({
-      query: (id) => ({
-        url: `quotations/${id}/duplicate-data`,
-        method: "GET",
-      }),
+      // arg: string id (legacy) | { id, preserveSignatures }
+      query: (arg) => {
+        const id = typeof arg === "object" ? arg.id : arg;
+        const preserve = typeof arg === "object" ? !!arg.preserveSignatures : false;
+        return {
+          url: `quotations/${id}/duplicate-data`,
+          method: "GET",
+          params: preserve ? { preserve_signatures: 1 } : undefined,
+        };
+      },
       providesTags: () => [{ type: "Quotation", id: "DUPLICATE_DATA" }],
     }),
     approveQuotation: builder.mutation({
@@ -451,7 +457,11 @@ export const accountingApi = createApi({
           formData: true,
         };
       },
-      invalidatesTags: (r, e, { id }) => [{ type: "Quotation", id }],
+      invalidatesTags: (r, e, { id }) => [
+        { type: "Quotation", id },
+        { type: "Quotation", id: "LIST" },
+        { type: "Quotation", id: "DUPLICATE_DATA" },
+      ],
     }),
     uploadQuotationSampleImages: builder.mutation({
       query: ({ id, files }) => {
@@ -466,7 +476,11 @@ export const accountingApi = createApi({
           formData: true,
         };
       },
-      invalidatesTags: (r, e, { id }) => [{ type: "Quotation", id }],
+      invalidatesTags: (r, e, { id }) => [
+        { type: "Quotation", id },
+        { type: "Quotation", id: "LIST" },
+        { type: "Quotation", id: "DUPLICATE_DATA" },
+      ],
     }),
     uploadQuotationSampleImagesTemp: builder.mutation({
       query: ({ files }) => {

@@ -1,4 +1,5 @@
 import {
+  Badge as BadgeIcon,
   Inventory2 as ItemsIcon,
   Payment as PaymentIcon,
   PersonOutline as CustomerIcon,
@@ -27,33 +28,38 @@ export const TAB_DEFS = [
   { id: "payment", label: "เงื่อนไขชำระ", Icon: PaymentIcon },
 ];
 
-const EditModeTabs = ({ activeTab, onChange }) => (
-  <Box
-    sx={{
-      borderBottom: 1,
-      borderColor: "divider",
-      bgcolor: "background.paper",
-    }}
-  >
-    <Tabs
-      value={activeTab}
-      onChange={(_e, val) => onChange(val)}
-      variant="scrollable"
-      scrollButtons="auto"
-      allowScrollButtonsMobile
+export const EVIDENCE_TAB = { id: "evidence", label: "หลักฐาน", Icon: BadgeIcon };
+
+const EditModeTabs = ({ activeTab, onChange, showEvidence = false }) => {
+  const tabs = showEvidence ? [...TAB_DEFS, EVIDENCE_TAB] : TAB_DEFS;
+  return (
+    <Box
+      sx={{
+        borderBottom: 1,
+        borderColor: "divider",
+        bgcolor: "background.paper",
+      }}
     >
-      {TAB_DEFS.map(({ id, label, Icon }) => (
-        <Tab
-          key={id}
-          value={id}
-          iconPosition="start"
-          icon={<Icon sx={{ fontSize: 18 }} />}
-          label={label}
-          sx={{ textTransform: "none", fontSize: "0.9rem", minHeight: 44 }}
-        />
-      ))}
-    </Tabs>
-  </Box>
-);
+      <Tabs
+        value={activeTab}
+        onChange={(_e, val) => onChange(val)}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
+      >
+        {tabs.map(({ id, label, Icon }) => (
+          <Tab
+            key={id}
+            value={id}
+            iconPosition="start"
+            icon={<Icon sx={{ fontSize: 18 }} />}
+            label={label}
+            sx={{ textTransform: "none", fontSize: "0.9rem", minHeight: 44 }}
+          />
+        ))}
+      </Tabs>
+    </Box>
+  );
+};
 
 export default EditModeTabs;

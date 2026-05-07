@@ -2,9 +2,9 @@
 
 namespace App\Services\Accounting\Quotation;
 
+use App\Models\Accounting\DocumentHistory;
 use App\Models\Accounting\Quotation;
 use App\Models\Accounting\QuotationItem;
-use App\Models\Accounting\DocumentHistory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -16,12 +16,14 @@ class ManagementService
     {
         $this->syncService = $syncService;
     }
+
     /**
      * อัปเดต Quotation
-     * @param mixed $id
-     * @param mixed $data
-     * @param mixed $updatedBy
-     * @param bool $confirmSync
+     *
+     * @param  mixed  $id
+     * @param  mixed  $data
+     * @param  mixed  $updatedBy
+     * @param  bool  $confirmSync
      * @return array|Quotation
      */
     public function update($id, $data, $updatedBy = null, $confirmSync = false)
@@ -40,17 +42,17 @@ class ManagementService
             $quotation->fill($data);
 
             // Restore preserved fields if they weren't in the update data
-            if (!array_key_exists('primary_pricing_request_id', $data)) {
+            if (! array_key_exists('primary_pricing_request_id', $data)) {
                 $quotation->primary_pricing_request_id = $preservedPrimaryPrId;
             }
-            if (!array_key_exists('primary_pricing_request_ids', $data)) {
+            if (! array_key_exists('primary_pricing_request_ids', $data)) {
                 $quotation->primary_pricing_request_ids = $preservedPrimaryPrIds;
             }
 
             // หากเป็นเอกสารที่อนุมัติแล้ว/ส่งแล้ว/เสร็จสิ้น ห้ามเปลี่ยนบริษัท
             if (
                 array_key_exists('company_id', $data) &&
-                !empty($data['company_id']) &&
+                ! empty($data['company_id']) &&
                 $data['company_id'] !== $oldCompanyId &&
                 in_array($quotation->status, ['approved', 'sent', 'completed'])
             ) {
@@ -60,12 +62,12 @@ class ManagementService
             // ถ้าบริษัทถูกเปลี่ยนและยังไม่ Final ให้ตั้งเลขชั่วคราว (DRAFT-xxxx) เพื่อออกใหม่ตอนอนุมัติ
             if (
                 array_key_exists('company_id', $data) &&
-                !empty($data['company_id']) &&
+                ! empty($data['company_id']) &&
                 $data['company_id'] !== $oldCompanyId &&
-                !in_array($quotation->status, ['approved', 'sent', 'completed'])
+                ! in_array($quotation->status, ['approved', 'sent', 'completed'])
             ) {
-                $suffix = substr(str_replace('-', '', (string)$quotation->id), -8);
-                $quotation->number = 'DRAFT-' . $suffix;
+                $suffix = substr(str_replace('-', '', (string) $quotation->id), -8);
+                $quotation->number = 'DRAFT-'.$suffix;
             }
 
             $quotation->save();
@@ -83,7 +85,9 @@ class ManagementService
                         : ($index + 1);
                     if (isset($seqSeen[$seq])) {
                         // Bump to next available sequence
-                        while (isset($seqSeen[$seq])) { $seq++; }
+                        while (isset($seqSeen[$seq])) {
+                            $seq++;
+                        }
                     }
                     $seqSeen[$seq] = true;
 
@@ -122,7 +126,7 @@ class ManagementService
                         $quotation->save();
                     }
                 } catch (\Exception $e) {
-                    Log::warning('Failed to sync primary_pricing_request_ids: ' . $e->getMessage());
+                    Log::warning('Failed to sync primary_pricing_request_ids: '.$e->getMessage());
                 }
             }
 
@@ -135,22 +139,22 @@ class ManagementService
                 try {
                     // Reload quotation with items to ensure we have latest data
                     $quotation->load('items');
-                    
+
                     // Perform immediate sync
                     $syncResult = $this->syncService->syncToInvoicesImmediately($quotation, $updatedBy);
-                    
+
                     Log::info('Quotation updated and synced to invoices', [
                         'quotation_id' => $quotation->id,
                         'sync_job_id' => $syncResult['job_id'] ?? null,
-                        'updated_count' => $syncResult['updated_count'] ?? 0
+                        'updated_count' => $syncResult['updated_count'] ?? 0,
                     ]);
                 } catch (\Exception $syncError) {
                     // Log sync error but don't fail the quotation update
-                    Log::error('Failed to sync quotation to invoices: ' . $syncError->getMessage(), [
+                    Log::error('Failed to sync quotation to invoices: '.$syncError->getMessage(), [
                         'quotation_id' => $quotation->id,
-                        'error' => $syncError->getMessage()
+                        'error' => $syncError->getMessage(),
                     ]);
-                    
+
                     // Still commit the quotation update
                     // The admin can manually trigger sync later if needed
                 }
@@ -162,17 +166,17 @@ class ManagementService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('QuotationService::update error: ' . $e->getMessage());
+            Log::error('QuotationService::update error: '.$e->getMessage());
             throw $e;
         }
     }
 
     /**
      * ลบใบเสนอราคา (Soft Delete)
-     * @param mixed $id
-     * @param mixed $deletedBy
-     * @param mixed $reason
-     * @return bool
+     *
+     * @param  mixed  $id
+     * @param  mixed  $deletedBy
+     * @param  mixed  $reason
      */
     public function delete($id, $deletedBy = null, $reason = null): bool
     {
@@ -180,7 +184,7 @@ class ManagementService
             DB::beginTransaction();
 
             $quotation = Quotation::findOrFail($id);
-            
+
             // ตรวจสอบว่าสามารถลบได้หรือไม่
             if (in_array($quotation->status, ['approved', 'sent', 'completed'])) {
                 throw new \Exception('Cannot delete quotation that has been approved, sent, or completed');
@@ -199,7 +203,7 @@ class ManagementService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('QuotationService::delete error: ' . $e->getMessage());
+            Log::error('QuotationService::delete error: '.$e->getMessage());
             throw $e;
         }
     }
@@ -208,10 +212,10 @@ class ManagementService
      * ดึงข้อมูล Quotation และ Items สำหรับการทำสำเนา (Duplicate)
      * โดยล้างค่า ID, number, status, และรูปภาพ เพื่อให้พร้อมสำหรับการสร้างใหม่
      *
-     * @param string $id ID ของ Quotation ต้นฉบับ
+     * @param  string  $id  ID ของ Quotation ต้นฉบับ
      * @return array<string,mixed> ข้อมูลที่พร้อมสำหรับส่งให้ Frontend
      */
-    public function getDataForDuplication(string $id): array
+    public function getDataForDuplication(string $id, bool $preserveSignatures = false): array
     {
         try {
             // 1. โหลดข้อมูลต้นฉบับ (ต้องแน่ใจว่าโหลด 'items' และ 'customer' มาด้วย)
@@ -230,57 +234,65 @@ class ManagementService
             unset($newData['approved_by']);
             unset($newData['submitted_at']);
             unset($newData['submitted_by']);
-            
+
             // เก็บ primary_pricing_request_id และ primary_pricing_request_ids ไว้
             // (ไม่ลบ - ให้คัดลอกมาด้วย)
-            
+
             // 4. ล้างข้อมูลรูปภาพและไฟล์แนบ
-            $newData['signature_images'] = []; // ไม่คัดลอกรูป signature
+            // duplicate flow → clear signatures (สำเนาฉบับใหม่ ไม่ควรเอาลายเซ็นเดิมมา)
+            // edit flow ($preserveSignatures = true) → คงรูปไว้เพื่อแสดงในแท็บ "หลักฐาน"
+            if (! $preserveSignatures) {
+                $newData['signature_images'] = [];
+            }
             // คงรูป sample_images ไว้ (ถ้าต้องการคัดลอก)
             // $newData['sample_images'] = $newData['sample_images'] ?? [];
 
             // 5. ตั้งค่าสถานะเริ่มต้น
-            $newData['status'] = 'draft'; 
-            
+            // duplicate flow → reset draft; edit flow → คงสถานะเดิม
+            if (! $preserveSignatures) {
+                $newData['status'] = 'draft';
+            }
+
             // 6. ลบข้อความ "(สำเนาจาก ...)" ออกจาก notes
-            if (!empty($newData['notes'])) {
+            if (! empty($newData['notes'])) {
                 $newData['notes'] = preg_replace('/\n*\(\s*สำเนาจาก\s+[^\)]+\)\s*$/u', '', $newData['notes']);
                 $newData['notes'] = trim($newData['notes']);
             }
-            
+
             // 7. DEFENSE-IN-DEPTH: Normalize sequence orders (Preprocessing)
             if (isset($newData['items']) && is_array($newData['items'])) {
                 // Sort by existing sequence_order first
-                usort($newData['items'], function($a, $b) {
+                usort($newData['items'], function ($a, $b) {
                     $seqA = $a['sequence_order'] ?? 999999;
                     $seqB = $b['sequence_order'] ?? 999999;
+
                     return $seqA <=> $seqB;
                 });
 
                 // Re-assign continuous sequence orders and clean up item data
-                $newData['items'] = array_values(array_map(function($item, $index) {
+                $newData['items'] = array_values(array_map(function ($item, $index) {
                     unset($item['id']);
                     unset($item['quotation_id']);
                     unset($item['created_at']);
                     unset($item['updated_at']);
-                    
+
                     // Assign normalized sequence order (1-based, continuous)
                     $item['sequence_order'] = $index + 1;
-                    
+
                     return $item;
                 }, $newData['items'], array_keys($newData['items'])));
 
                 Log::info('QuotationService::getDataForDuplication - Normalized sequence orders', [
                     'original_quotation_id' => $id,
                     'item_count' => count($newData['items']),
-                    'sequences' => array_column($newData['items'], 'sequence_order')
+                    'sequences' => array_column($newData['items'], 'sequence_order'),
                 ]);
             }
 
             return $newData;
 
         } catch (\Exception $e) {
-            Log::error('QuotationService::getDataForDuplication error: ' . $e->getMessage());
+            Log::error('QuotationService::getDataForDuplication error: '.$e->getMessage());
             throw $e;
         }
     }

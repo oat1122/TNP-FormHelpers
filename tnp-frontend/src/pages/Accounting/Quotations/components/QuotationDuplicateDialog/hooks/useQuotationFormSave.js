@@ -64,6 +64,7 @@ export function useQuotationFormSave({
         financials,
         formState,
         dueDate,
+        mode,
       });
 
       const loadingMsg = isEdit ? "กำลังบันทึกใบเสนอราคา…" : "กำลังสร้างใบเสนอราคา (สำเนา)…";
@@ -97,6 +98,7 @@ export function useQuotationFormSave({
     },
     [
       isEdit,
+      mode,
       quotationId,
       createQuotation,
       updateQuotation,

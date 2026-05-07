@@ -15,6 +15,7 @@ import { useQuotationDuplicateItems } from "./hooks/useQuotationDuplicateItems";
 import { useQuotationDuplicateValidation } from "./hooks/useQuotationDuplicateValidation";
 import { useQuotationFormSave } from "./hooks/useQuotationFormSave";
 import CustomerSection from "./sections/CustomerSection";
+import EvidenceSection from "./sections/EvidenceSection";
 import ItemsCalculationSection from "./sections/ItemsCalculationSection";
 import PaymentTermsSection from "./sections/PaymentTermsSection";
 import DialogHeader from "./subcomponents/DialogHeader";
@@ -33,6 +34,7 @@ const QuotationDuplicateDialog = ({
   onClose,
   initialData,
   onSaveSuccess,
+  onSignatureUploaded,
   mode = "duplicate",
   quotationId = null,
 }) => {
@@ -135,6 +137,17 @@ const QuotationDuplicateDialog = ({
           />
         </Grid>
       ),
+      evidence: (
+        <Grid container spacing={2}>
+          <EvidenceSection
+            quotationId={quotationId || q?.id}
+            signatureImages={Array.isArray(q?.signature_images) ? q.signature_images : []}
+            sampleImages={Array.isArray(q?.sample_images) ? q.sample_images : []}
+            currentUserRole={currentUser?.role}
+            onUploaded={onSignatureUploaded}
+          />
+        </Grid>
+      ),
     }),
     [
       customer,
@@ -147,6 +160,9 @@ const QuotationDuplicateDialog = ({
       groupHandlers,
       formState,
       financials,
+      quotationId,
+      currentUser?.role,
+      onSignatureUploaded,
     ]
   );
 
@@ -174,7 +190,7 @@ const QuotationDuplicateDialog = ({
       />
       {/* Tab bar — placed OUTSIDE DialogContent so it sits flush against
           DialogHeader with no padding gap (per user request "ย้ายให้ติดกัน") */}
-      <EditModeTabs activeTab={activeTab} onChange={setActiveTab} />
+      <EditModeTabs activeTab={activeTab} onChange={setActiveTab} showEvidence={isEdit} />
       <DialogContent dividers={false} sx={{ p: 2, bgcolor: tokens.bg }}>
         <Box>
           <ValidationBanner issues={issues} />

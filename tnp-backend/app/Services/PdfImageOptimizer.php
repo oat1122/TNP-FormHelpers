@@ -7,7 +7,7 @@ use Intervention\Image\ImageManager;
 
 /**
  * PDF Image Optimizer Service
- * 
+ *
  * Optimizes images for PDF generation by resizing them to reasonable dimensions
  * to improve mPDF performance and reduce memory usage.
  * Uses Intervention Image v3 with GD driver.
@@ -15,42 +15,52 @@ use Intervention\Image\ImageManager;
 class PdfImageOptimizer
 {
     protected ImageManager $imageManager;
+
     protected array $config;
+
     protected string $placeholderPath;
 
     /**
      * Constructor with Dependency Injection
-     * 
-     * @param ImageManager $imageManager Intervention Image manager instance
+     *
+     * @param  ImageManager  $imageManager  Intervention Image manager instance
      */
     public function __construct(ImageManager $imageManager)
     {
         $this->imageManager = $imageManager;
         $this->config = config('pdf.image_optimization', []);
         $this->placeholderPath = public_path('images/placeholder-image.png');
-        
+
         // Ensure cache directory exists
         $this->ensureCacheDirectory();
     }
 
     /**
      * Optimize image for PDF generation
-     * 
-     * @param string $imagePath Absolute path to the original image
+     *
+     * @param  string  $imagePath  Absolute path to the original image
      * @return string Path to optimized image (or placeholder on error)
      */
     public function optimizeForPdf(string $imagePath): string
     {
         // Return placeholder if optimization is disabled
-        if (!($this->config['enabled'] ?? true)) {
+        if (! ($this->config['enabled'] ?? true)) {
             return $this->getValidImagePath($imagePath);
         }
 
+        // URL fallback — when blade resolver couldn't find local file and passed
+        // a remote URL (e.g. legacy data synced from production). mPDF can fetch
+        // HTTP(S) directly; the optimizer can't resize remote images.
+        if (preg_match('#^https?://#i', $imagePath)) {
+            return $imagePath;
+        }
+
         // Validate original image exists
-        if (!is_file($imagePath)) {
+        if (! is_file($imagePath)) {
             Log::warning('PdfImageOptimizer: Image file not found', [
-                'path' => $imagePath
+                'path' => $imagePath,
             ]);
+
             return $this->placeholderPath;
         }
 
@@ -66,10 +76,10 @@ class PdfImageOptimizer
 
             // Load and resize image
             $image = $this->imageManager->read($imagePath);
-            
+
             $maxWidth = $this->config['max_width'] ?? 800;
             $maxHeight = $this->config['max_height'] ?? 800;
-            
+
             // Only resize if image is larger than max dimensions
             if ($image->width() > $maxWidth || $image->height() > $maxHeight) {
                 $image->scale(
@@ -81,14 +91,14 @@ class PdfImageOptimizer
             // Save optimized image
             $outputPath = $cacheEnabled ? $cachedPath : $this->getTempPath();
             $quality = $this->config['jpeg_quality'] ?? 85;
-            
+
             $image->toJpeg($quality)->save($outputPath);
 
             Log::info('PdfImageOptimizer: Image optimized successfully', [
                 'original' => $imagePath,
                 'optimized' => $outputPath,
                 'original_size' => filesize($imagePath),
-                'optimized_size' => filesize($outputPath)
+                'optimized_size' => filesize($outputPath),
             ]);
 
             return $outputPath;
@@ -96,9 +106,9 @@ class PdfImageOptimizer
         } catch (\Throwable $e) {
             Log::warning('PdfImageOptimizer: Failed to optimize image', [
                 'path' => $imagePath,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             // Return placeholder on any error
             return $this->placeholderPath;
         }
@@ -106,8 +116,8 @@ class PdfImageOptimizer
 
     /**
      * Get cached image path based on original file hash
-     * 
-     * @param string $imagePath Original image path
+     *
+     * @param  string  $imagePath  Original image path
      * @return string Path to cached image
      */
     protected function getCachedImagePath(string $imagePath): string
@@ -115,19 +125,20 @@ class PdfImageOptimizer
         $cachePath = $this->config['cache_path'] ?? storage_path('app/pdf-images-cache');
         $hash = md5_file($imagePath);
         $extension = $this->config['output_format'] ?? 'jpg';
-        
-        return $cachePath . DIRECTORY_SEPARATOR . $hash . '.' . $extension;
+
+        return $cachePath.DIRECTORY_SEPARATOR.$hash.'.'.$extension;
     }
 
     /**
      * Get temporary path for non-cached optimization
-     * 
+     *
      * @return string Temporary file path
      */
     protected function getTempPath(): string
     {
         $tempDir = sys_get_temp_dir();
-        return $tempDir . DIRECTORY_SEPARATOR . 'pdf_img_' . uniqid() . '.jpg';
+
+        return $tempDir.DIRECTORY_SEPARATOR.'pdf_img_'.uniqid().'.jpg';
     }
 
     /**
@@ -136,16 +147,16 @@ class PdfImageOptimizer
     protected function ensureCacheDirectory(): void
     {
         $cachePath = $this->config['cache_path'] ?? storage_path('app/pdf-images-cache');
-        
-        if (!is_dir($cachePath)) {
+
+        if (! is_dir($cachePath)) {
             @mkdir($cachePath, 0755, true);
         }
     }
 
     /**
      * Get valid image path or placeholder
-     * 
-     * @param string $imagePath Original image path
+     *
+     * @param  string  $imagePath  Original image path
      * @return string Valid image path or placeholder
      */
     protected function getValidImagePath(string $imagePath): string
@@ -153,27 +164,27 @@ class PdfImageOptimizer
         if (is_file($imagePath)) {
             return $imagePath;
         }
-        
+
         return $this->placeholderPath;
     }
 
     /**
      * Clear all cached images
-     * 
+     *
      * @return array Statistics about cleared cache
      */
     public function clearCache(): array
     {
         $cachePath = $this->config['cache_path'] ?? storage_path('app/pdf-images-cache');
-        
-        if (!is_dir($cachePath)) {
+
+        if (! is_dir($cachePath)) {
             return ['count' => 0, 'size' => 0];
         }
 
         $count = 0;
         $size = 0;
-        
-        $files = glob($cachePath . DIRECTORY_SEPARATOR . '*');
+
+        $files = glob($cachePath.DIRECTORY_SEPARATOR.'*');
         foreach ($files as $file) {
             if (is_file($file)) {
                 $size += filesize($file);
@@ -187,21 +198,21 @@ class PdfImageOptimizer
 
     /**
      * Get cache statistics
-     * 
+     *
      * @return array Cache statistics
      */
     public function getCacheStats(): array
     {
         $cachePath = $this->config['cache_path'] ?? storage_path('app/pdf-images-cache');
-        
-        if (!is_dir($cachePath)) {
+
+        if (! is_dir($cachePath)) {
             return ['count' => 0, 'size' => 0];
         }
 
         $count = 0;
         $size = 0;
-        
-        $files = glob($cachePath . DIRECTORY_SEPARATOR . '*');
+
+        $files = glob($cachePath.DIRECTORY_SEPARATOR.'*');
         foreach ($files as $file) {
             if (is_file($file)) {
                 $size += filesize($file);

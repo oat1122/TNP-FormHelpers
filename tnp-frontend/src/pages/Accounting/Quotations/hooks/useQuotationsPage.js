@@ -159,7 +159,11 @@ export const useQuotationsPage = ({ enabled = true } = {}) => {
           return;
         }
 
-        const result = await triggerGetDuplicateData(quotationId).unwrap();
+        // edit flow needs signatures preserved (duplicate flow clears them by default)
+        const result = await triggerGetDuplicateData({
+          id: quotationId,
+          preserveSignatures: true,
+        }).unwrap();
         setEditData(result.data);
         setEditQuotationId(quotationId);
         setEditOpen(true);
@@ -193,6 +197,31 @@ export const useQuotationsPage = ({ enabled = true } = {}) => {
       })
     );
   }, [refetch, dispatch]);
+
+  // Refresh editData snapshot + list after a signature is uploaded inside the
+  // edit dialog. Local optimistic state in EvidenceSection updates the gallery
+  // immediately; this refetch keeps the row's signature_image_url in sync so
+  // the "create invoice" button enables without closing the dialog.
+  const handleSignatureUploaded = useCallback(
+    async (updatedSignatures) => {
+      refetch();
+      if (editQuotationId) {
+        try {
+          const result = await triggerGetDuplicateData({
+            id: editQuotationId,
+            preserveSignatures: true,
+          }).unwrap();
+          setEditData(result.data);
+        } catch (err) {
+          if (import.meta.env.DEV) console.error("Failed to refresh edit data", err);
+        }
+      }
+      // Keep the linter happy — accept arg even if unused (response data already
+      // applied locally inside EvidenceSection)
+      void updatedSignatures;
+    },
+    [refetch, editQuotationId, triggerGetDuplicateData]
+  );
 
   const handleRefresh = useCallback(() => {
     refetch();
@@ -307,6 +336,7 @@ export const useQuotationsPage = ({ enabled = true } = {}) => {
     handleEdit,
     handleCloseEditDialog,
     handleSaveEditSuccess,
+    handleSignatureUploaded,
     // Handlers
     handleDownloadPDF,
     handleDuplicate,

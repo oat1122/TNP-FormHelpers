@@ -16,7 +16,11 @@ import {
   useUpdateInvoiceMutation,
   useGenerateInvoicePDFMutation,
 } from "../../../../../features/Accounting/accountingApi";
-import { SecondaryButton, tokens } from "../../../PricingIntegration/components/styles/quotationFormStyles";
+import {
+  SecondaryButton,
+  tokens,
+} from "../../../PricingIntegration/components/styles/quotationFormStyles";
+import { useCurrentUser } from "../../../shared/hooks/useCurrentUser";
 import { showSuccess, showError, showLoading, dismissToast } from "../../../utils/accountingToast";
 import InvoiceWarningsBanner from "../calculation/InvoiceWarningsBanner";
 import { useInvoiceCalculation } from "../calculation/useInvoiceCalculation";
@@ -33,10 +37,15 @@ import DialogHeader from "./subcomponents/DialogHeader";
 import EditModeTabs from "./subcomponents/EditModeTabs";
 import { normalizeCustomer, normalizeItems } from "./utils/invoiceDetailNormalizers";
 
+const EDIT_INVOICE_ROLES = ["admin", "account"];
+
 const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   const { data, isLoading, error } = useGetInvoiceQuery(invoiceId, { skip: !open || !invoiceId });
   const [updateInvoice, { isLoading: isSaving }] = useUpdateInvoiceMutation();
   const [generateInvoicePDF, { isLoading: isGeneratingPdf }] = useGenerateInvoicePDFMutation();
+  const { currentUser, isAdmin } = useCurrentUser();
+  const canEditInvoice =
+    isAdmin || EDIT_INVOICE_ROLES.includes(String(currentUser?.role || "").toLowerCase());
 
   const [isEditing, setIsEditing] = useState(false);
   const [notes, setNotes] = useState("");
@@ -347,7 +356,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   }, [open]);
 
   const enterEditMode = () => {
-    // Keep current selection; do not force reset to 'master'
+    if (!canEditInvoice) return; // role gate — only admin/account can edit
     setIsEditing(true);
   };
 
@@ -560,21 +569,23 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
           >
             {isGeneratingPdf ? "กำลังสร้าง…" : "ดูตัวอย่าง PDF"}
           </SecondaryButton>
-          <Button
-            variant="contained"
-            onClick={enterEditMode}
-            disabled={validation.isReadOnly}
-            sx={{
-              bgcolor: tokens.primary,
-              "&:hover": { bgcolor: "#7A0E0E" },
-              "&:disabled": { bgcolor: "grey.300" },
-            }}
-            aria-label={
-              validation.isReadOnly ? "ไม่สามารถแก้ไขได้ในสถานะปัจจุบัน" : "แก้ไขใบแจ้งหนี้"
-            }
-          >
-            แก้ไข
-          </Button>
+          {canEditInvoice && (
+            <Button
+              variant="contained"
+              onClick={enterEditMode}
+              disabled={validation.isReadOnly}
+              sx={{
+                bgcolor: tokens.primary,
+                "&:hover": { bgcolor: "#7A0E0E" },
+                "&:disabled": { bgcolor: "grey.300" },
+              }}
+              aria-label={
+                validation.isReadOnly ? "ไม่สามารถแก้ไขได้ในสถานะปัจจุบัน" : "แก้ไขใบแจ้งหนี้"
+              }
+            >
+              แก้ไข
+            </Button>
+          )}
         </>
       )}
     </Box>

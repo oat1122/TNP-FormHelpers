@@ -224,10 +224,17 @@ class QuotationController extends Controller
      * ดึงข้อมูลใบเสนอราคาสำหรับทำสำเนา
      * GET /api/v1/quotations/{id}/duplicate-data
      */
-    public function getDuplicateData($id): JsonResponse
+    public function getDuplicateData(Request $request, $id): JsonResponse
     {
         try {
-            $duplicateData = $this->quotationService->getDataForDuplication($id);
+            // edit flow ส่ง ?preserve_signatures=1 เพื่อคงลายเซ็นไว้ให้แสดงในแท็บ "หลักฐาน"
+            // duplicate flow (default) จะ clear signatures + reset status เป็น draft
+            $preserve = filter_var(
+                $request->query('preserve_signatures', false),
+                FILTER_VALIDATE_BOOLEAN
+            );
+
+            $duplicateData = $this->quotationService->getDataForDuplication($id, $preserve);
 
             return $this->successResponse($duplicateData, 'Quotation data for duplication retrieved successfully');
 

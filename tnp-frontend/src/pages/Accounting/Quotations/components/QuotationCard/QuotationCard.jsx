@@ -289,20 +289,23 @@ export default function QuotationCard({
             )}
           </Box>
           <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-            {onCreateInvoice && data?.status === "approved" && data?.signature_image_url && (
-              <Tooltip title={actionButtonText || "สร้างใบแจ้งหนี้"}>
-                <span>
-                  <IconButton
-                    size="medium"
-                    color="primary"
-                    onClick={onCreateInvoice}
-                    disabled={creatingInvoice}
-                  >
-                    {creatingInvoice ? <CircularProgress size={24} /> : <ReceiptIcon />}
-                  </IconButton>
-                </span>
-              </Tooltip>
-            )}
+            {onCreateInvoice &&
+              data?.status === "approved" &&
+              Array.isArray(data?.signature_images) &&
+              data.signature_images.length > 0 && (
+                <Tooltip title={actionButtonText || "สร้างใบแจ้งหนี้"}>
+                  <span>
+                    <IconButton
+                      size="medium"
+                      color="primary"
+                      onClick={onCreateInvoice}
+                      disabled={creatingInvoice}
+                    >
+                      {creatingInvoice ? <CircularProgress size={24} /> : <ReceiptIcon />}
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              )}
             {onDuplicate && (
               <Tooltip title="ทำสำเนา">
                 <IconButton size="medium" color="secondary" onClick={onDuplicate}>

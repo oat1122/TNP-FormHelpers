@@ -2,8 +2,16 @@
 // No side-effects, no hooks, no API calls.
 import { PAYMENT_TERMS } from "../../../../shared/constants/paymentTerms";
 
-// Build the create-standalone-quotation payload from the source quotation +
-// edited form state. Caller is responsible for unwrapping/awaiting the mutation.
+// Build save payload from the source quotation + edited form state.
+//
+// `mode` controls whether image fields are included:
+//   - "duplicate" (default) → include sample_images (carries over to new doc)
+//   - "edit"                → exclude sample_images / signature_images
+//                             (managed by dedicated upload + toggle endpoints —
+//                             including stale snapshot here would overwrite
+//                             newly-uploaded images)
+//
+// Caller awaits the mutation.
 export function buildQuotationDuplicatePayload({
   sourceQuotation,
   customer,
@@ -11,10 +19,12 @@ export function buildQuotationDuplicatePayload({
   financials,
   formState,
   dueDate,
+  mode = "duplicate",
 }) {
   const { specialDiscount, withholding, vat, pricingMode, deposit, payment, notes } = formState;
+  const isEdit = mode === "edit";
 
-  return {
+  const payload = {
     company_id: sourceQuotation.company_id,
     customer_id: customer?.cus_id || sourceQuotation.customer_id,
     work_name: sourceQuotation.work_name,
@@ -55,7 +65,13 @@ export function buildQuotationDuplicatePayload({
     payment_terms: payment.type === PAYMENT_TERMS.OTHER ? payment.custom || "" : payment.type,
     due_date: dueDate,
     notes: notes || "",
-
-    sample_images: sourceQuotation?.sample_images || [],
   };
+
+  // Carry over images only on duplicate; in edit mode, omit so BE preserves
+  // whatever was uploaded via the dedicated endpoints.
+  if (!isEdit) {
+    payload.sample_images = sourceQuotation?.sample_images || [];
+  }
+
+  return payload;
 }

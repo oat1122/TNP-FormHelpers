@@ -39,6 +39,8 @@ return [
     'notification' => [
         'url' => env('NOTIFICATION_SERVICE_URL', 'http://localhost:3000'),
         'api_key' => env('NOTIFICATION_API_KEY'),
+        'token_secret' => env('NOTIFICATION_TOKEN_SECRET'),
+        'token_ttl' => (int) env('NOTIFICATION_TOKEN_TTL', 3600),
     ],
 
 ];

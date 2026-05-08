@@ -28,7 +28,7 @@ import React, { useState } from "react";
 import CapacitySummary from "./CapacitySummary";
 import StatisticsCards from "./StatisticsCards";
 import WorkCapacityCard from "./WorkCapacityCard";
-import useProductionCapacityCalculation from "../../hooks/useProductionCapacityCalculation";
+import useProductionCapacityCalculation from "../../pages/MaxSupply/hooks/useProductionCapacityCalculation";
 
 const EnhancedDashboard = ({
   statistics,

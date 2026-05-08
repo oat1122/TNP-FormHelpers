@@ -1,12 +1,16 @@
 import { useEffect, useRef, useMemo, useCallback, useState } from "react";
+import { useDispatch } from "react-redux";
 import { io } from "socket.io-client";
-import { showNotificationToast } from "../utils/toast";
+
+import axios from "../api/axios";
 import {
+  notificationRtkApi,
   useGetUnreadNotificationsQuery,
   useMarkAsReadMutation,
   useMarkAllAsReadMutation,
   useDismissNotificationMutation,
 } from "../features/Notification";
+import { showNotificationToast } from "../utils/toast";
 
 // URL ของ Notification Server - ใช้ค่าจาก .env
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
@@ -43,6 +47,7 @@ const getUserData = () => {
  */
 export const useSocketNotification = (options = {}) => {
   const { enableNotifications = true } = options;
+  const dispatch = useDispatch();
   const socketRef = useRef(null);
   const pendingNotificationsRef = useRef([]); // Queue for notifications when tab is hidden
   const isProcessingQueueRef = useRef(false); // Flag to prevent multiple queue processing
@@ -127,15 +132,31 @@ export const useSocketNotification = (options = {}) => {
   useEffect(() => {
     if (!user?.user_id) return;
 
-    // Connect to Socket.io server
+    // Connect to Socket.io server.
+    //
+    // Auth: Socket.io invokes the `auth` callback on every connection attempt
+    // (initial + reconnects), so each handshake gets a fresh HMAC token from
+    // Laravel. The server verifies the token and auto-joins us to
+    // `user_<id>` — we no longer emit `join_user`. See
+    // tnp-notification/.claude/rules/socket-auth.md.
     socketRef.current = io(SOCKET_URL, {
+      auth: (cb) => {
+        axios
+          .get("/auth/socket-token")
+          .then(({ data }) => cb(data?.data || {}))
+          .catch((err) => {
+            // Token fetch failed — connect with empty auth so the server
+            // logs us, then refuses room access. The user's HTTP session is
+            // already being handled by the axios 401 interceptor.
+            console.warn("Socket token fetch failed:", err?.message || err);
+            cb({});
+          });
+      },
       transports: ["websocket", "polling"],
     });
 
     socketRef.current.on("connect", () => {
       console.log("✅ Connected to Notification Server");
-      // Join user-specific room
-      socketRef.current.emit("join_user", user.user_id);
     });
 
     socketRef.current.on("connect_error", (error) => {
@@ -168,6 +189,19 @@ export const useSocketNotification = (options = {}) => {
       }
     });
 
+    // Sync unread count across tabs/devices (Laravel emits after mark-as-read /
+    // mark-all / dismiss). Patch the cache directly — no HTTP refetch.
+    socketRef.current.on("notification-sync", ({ unread_count }) => {
+      if (typeof unread_count !== "number") return;
+      dispatch(
+        notificationRtkApi.util.updateQueryData("getUnreadNotifications", undefined, (draft) => {
+          if (draft?.data) {
+            draft.data.unread_count = unread_count;
+          }
+        })
+      );
+    });
+
     // Cleanup on unmount
     return () => {
       if (socketRef.current) {
@@ -175,7 +209,7 @@ export const useSocketNotification = (options = {}) => {
         console.log("❌ Disconnected from Notification Server");
       }
     };
-  }, [user?.user_id, shouldFetch, refetch, showToast]);
+  }, [user?.user_id, shouldFetch, refetch, showToast, dispatch]);
 
   /**
    * Mark specific notifications as read

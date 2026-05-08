@@ -20,8 +20,8 @@ import {
   KanbanBoard,
   EnhancedDashboard,
 } from "../../components/MaxSupply";
-import { useFallbackData } from "../../hooks/useFallbackData";
 import { useMaxSupplyData } from "../../hooks/useMaxSupplyData";
+import { useFallbackData } from "./hooks/useFallbackData";
 import { maxSupplyApi, calendarApi } from "../../services/maxSupplyApi";
 
 const MaxSupplyHome = () => {

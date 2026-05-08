@@ -5,7 +5,7 @@ import React, { useEffect } from "react";
 import CapacitySummary from "./CapacitySummary";
 import ProductionTypeCapacityCard from "./ProductionTypeCapacityCard";
 import TimePeriodSelector from "./TimePeriodSelector";
-import useProductionCapacityCalculation from "../../hooks/useProductionCapacityCalculation";
+import useProductionCapacityCalculation from "../../pages/MaxSupply/hooks/useProductionCapacityCalculation";
 import { productionTypeConfig } from "../../pages/MaxSupply/utils/constants";
 
 const WorkCapacityCard = ({

@@ -216,12 +216,19 @@ const NotebookDialog = ({ currentUser = {} }) => {
   };
 
   const modeLabel = isViewMode
-    ? "ดูบันทึก"
+    ? "รายละเอียด"
     : isCustomerInfoEdit
       ? "แก้ไขข้อมูลลูกค้า"
       : isEditMode
-        ? "อัพเดทหลังโทร"
-        : "บันทึกการขายใหม่";
+        ? "บันทึกการดำเนินการ"
+        : "จดบันทึกใหม่";
+  const summaryExtraChips = isEditMode
+    ? [
+        isCustomerInfoEdit
+          ? { label: "ขอบเขต: ข้อมูลลูกค้า", color: "info", variant: "outlined" }
+          : { label: "ขอบเขต: การดำเนินการ", color: "primary", variant: "outlined" },
+      ]
+    : [];
   const closeButtonLabel = isViewMode ? "ปิด" : "ยกเลิก";
   const noteDescription = isEditMode
     ? "เพิ่มอัปเดตการพูดคุย บันทึกเดิมจะยังอยู่ในประวัติ"
@@ -258,6 +265,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
             title={summaryTitle}
             modeLabel={modeLabel}
             statusMeta={statusMeta}
+            extraChips={summaryExtraChips}
             onClose={handleClose}
           />
 

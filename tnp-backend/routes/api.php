@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
 use App\Http\Controllers\Api\V1\Accounting\QuotationController;
 use App\Http\Controllers\Api\V1\Accounting\QuotationReportController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\SocketTokenController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CostCalc\CostFabricController;
 use App\Http\Controllers\Api\V1\CostCalc\PatternController;
@@ -53,6 +54,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Socket auth — issues short-lived HMAC token for tnp-notification handshake.
+    // See tnp-notification/.claude/rules/socket-auth.md for the contract.
+    Route::get('/auth/socket-token', [SocketTokenController::class, 'issue']);
 
     // ---------- MaxSupply ----------
     Route::prefix('max-supplies')->group(function () {
@@ -428,7 +433,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         // PDF APIs (mPDF-first with fallback) - Mode-specific
         Route::match(['get', 'post'], '/invoices/{id}/generate-pdf', 'generatePdf');
         Route::get('/invoices/{id}/pdf/preview', 'streamPdf'); // UNUSED - Renamed for clarity
-        Route::get('/invoices/{id}/pdf/download', 'downloadPdf'); // UNUSED
+        // ใบแจ้งหนี้ (Invoice) PDF — InvoicePdfMasterService — รองรับ POST
+        // เพื่อใช้กับ preview-mode menu ใน table view (ส่ง document_header_type + mode)
+        Route::match(['get', 'post'], '/invoices/{id}/pdf/download', 'downloadPdf');
         // Tax Invoice / Receipt PDF APIs (reuse invoice body with different headers)
         Route::get('/invoices/{id}/pdf/tax/preview', 'streamTaxPdf');
         Route::post('/invoices/{id}/pdf/tax/download', 'downloadTaxPdf');

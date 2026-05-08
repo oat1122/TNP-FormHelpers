@@ -188,7 +188,7 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
           : format(now, "yyyy-MM-dd");
         submitData.nb_time = submitData.nb_time || format(now, "HH:mm");
 
-        if (!submitData.nb_workflow && (defaultCreateIntoQueue || defaultCreateIntoMine)) {
+        if (!submitData.nb_workflow && defaultCreateIntoQueue) {
           submitData.nb_workflow = "lead_queue";
         }
       }

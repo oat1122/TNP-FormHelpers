@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { useInvoiceActions } from "./useInvoiceActions";
 import { useGetInvoicesQuery } from "../../../../features/Accounting/accountingApi";
-import { useInvoiceActions } from "../../../../hooks/Accounting/useInvoiceActions";
 import { useAdvancedFilter } from "../../shared/components";
 import { useCurrentUser } from "../../shared/hooks/useCurrentUser";
 

@@ -20,7 +20,7 @@ import {
 import React, { useEffect } from "react";
 
 import TimePeriodSelector from "./TimePeriodSelector";
-import useProductionCapacityCalculation from "../../hooks/useProductionCapacityCalculation";
+import useProductionCapacityCalculation from "../../pages/MaxSupply/hooks/useProductionCapacityCalculation";
 import ProductionTypeIcon from "../../pages/MaxSupply/components/ProductionTypeIcon";
 
 const StatisticsCards = ({

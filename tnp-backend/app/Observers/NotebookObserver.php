@@ -11,29 +11,37 @@ class NotebookObserver
 {
     public function creating(Notebook $notebook): void
     {
-        $notebook->nb_is_fresh_queue = $notebook->nb_workflow === Notebook::WORKFLOW_LEAD_QUEUE
-            && ! empty($notebook->nb_manage_by)
-            && empty($notebook->nb_converted_at);
+        $notebook->nb_is_fresh_queue = $this->deriveFreshQueueFlag($notebook);
     }
 
     public function updating(Notebook $notebook): void
     {
-        if (! empty($notebook->nb_converted_at)) {
-            $notebook->nb_is_fresh_queue = false;
+        $notebook->nb_is_fresh_queue = $this->deriveFreshQueueFlag($notebook);
+    }
 
-            return;
+    /**
+     * Fresh = queue lead ที่ assign แล้วและ sales ยังไม่ได้กรอก status / followup
+     * (matches recompute migration 2026_04_29_140000_recompute_is_fresh_queue_v2)
+     */
+    private function deriveFreshQueueFlag(Notebook $notebook): bool
+    {
+        if (! empty($notebook->nb_converted_at)) {
+            return false;
         }
 
-        $originalManageBy = $notebook->getOriginal('nb_manage_by');
-        $newManageBy = $notebook->nb_manage_by;
+        if ($notebook->nb_workflow !== Notebook::WORKFLOW_LEAD_QUEUE) {
+            return false;
+        }
 
-        $justHandedOver = ! empty($newManageBy) && (
-            empty($originalManageBy)
-            || (int) $originalManageBy !== (int) $newManageBy
-        );
+        if (empty($notebook->nb_manage_by)) {
+            return false;
+        }
 
-        $notebook->nb_is_fresh_queue = $justHandedOver
-            && $notebook->nb_workflow === Notebook::WORKFLOW_LEAD_QUEUE;
+        $hasStatus = trim((string) $notebook->nb_status) !== '';
+        $hasFollowupDate = ! empty($notebook->nb_next_followup_date);
+        $hasFollowupNote = trim((string) $notebook->nb_next_followup_note) !== '';
+
+        return ! $hasStatus && ! $hasFollowupDate && ! $hasFollowupNote;
     }
 
     /**

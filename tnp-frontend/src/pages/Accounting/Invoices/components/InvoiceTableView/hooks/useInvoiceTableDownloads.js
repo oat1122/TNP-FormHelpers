@@ -4,7 +4,11 @@ import { apiConfig } from "../../../../../../api/apiConfig";
 
 const getAuthToken = () => localStorage.getItem("authToken") || localStorage.getItem("token") || "";
 
+// path suffix ใต้ /invoices/{id}/pdf/...
+// "invoice" = endpoint /pdf/download (no subpath) — ใช้ InvoicePdfMasterService
+//             สร้าง "ใบแจ้งหนี้" (ไม่ใช่ใบกำกับภาษี)
 const KIND_PATH = {
+  invoice: "",
   tax: "tax",
   taxFull: "tax/full",
   receipt: "receipt",
@@ -12,11 +16,18 @@ const KIND_PATH = {
 };
 
 const KIND_LABEL = {
+  invoice: "ใบแจ้งหนี้",
   tax: "ใบกำกับภาษี",
   taxFull: "ใบกำกับภาษี (100%)",
   receipt: "ใบเสร็จรับเงิน",
   receiptFull: "ใบเสร็จรับเงิน (100%)",
 };
+
+// build endpoint URL — handle empty path (kind="invoice") ไม่ให้เป็น `//download`
+const buildPdfUrl = (baseUrl, invoiceId, path) =>
+  path
+    ? `${baseUrl}/invoices/${invoiceId}/pdf/${path}/download`
+    : `${baseUrl}/invoices/${invoiceId}/pdf/download`;
 
 export const useInvoiceTableDownloads = () => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -39,16 +50,18 @@ export const useInvoiceTableDownloads = () => {
   }, []);
 
   // เปิด picker dialog (ไม่ยิง API ทันที — รอ user เลือกหัวกระดาษ)
+  // รับ `invoice` arg เพื่อ trigger ตรงโดยไม่ต้องผ่าน openMenu ก่อน (สำหรับ preview flow)
   const triggerDownload = useCallback(
-    ({ kind, mode }) => {
-      if (!activeInvoice?.id) return;
-      const path = KIND_PATH[kind];
-      if (!path) return;
+    ({ kind, mode, invoice }) => {
+      const target = invoice || activeInvoice;
+      if (!target?.id) return;
+      // เช็คว่า kind valid (in KIND_PATH map)
+      if (!(kind in KIND_PATH)) return;
 
       setPendingDownload({
         kind,
         mode,
-        invoiceId: activeInvoice.id,
+        invoiceId: target.id,
       });
       setDialogOpen(true);
       closeMenu();
@@ -69,13 +82,13 @@ export const useInvoiceTableDownloads = () => {
     async (headerType) => {
       if (!pendingDownload) return;
       const { kind, mode, invoiceId } = pendingDownload;
+      if (!(kind in KIND_PATH)) return;
       const path = KIND_PATH[kind];
-      if (!path) return;
 
       setDownloading(true);
       let blobUrl = null;
       try {
-        const url = `${apiConfig.baseUrl}/invoices/${invoiceId}/pdf/${path}/download`;
+        const url = buildPdfUrl(apiConfig.baseUrl, invoiceId, path);
         const token = getAuthToken();
         if (!token) throw new Error("ไม่พบ Authentication token");
 

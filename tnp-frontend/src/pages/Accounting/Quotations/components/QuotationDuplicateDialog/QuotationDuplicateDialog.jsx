@@ -21,6 +21,7 @@ import PaymentTermsSection from "./sections/PaymentTermsSection";
 import DialogHeader from "./subcomponents/DialogHeader";
 import EditModeTabs from "./subcomponents/EditModeTabs";
 import ValidationBanner from "./subcomponents/ValidationBanner";
+import { useGetCompaniesQuery } from "../../../../../features/Accounting/accountingApi";
 import CustomerEditDialog from "../../../PricingIntegration/components/CustomerEditDialog";
 import { useCurrentUser } from "../../../shared/hooks/useCurrentUser";
 import { useQuotationFinancials } from "../../../shared/hooks/useQuotationFinancials";
@@ -45,6 +46,31 @@ const QuotationDuplicateDialog = ({
   // Form state (customer + notes + payment + deposit + discount + vat + withholding)
   const { q, customer, editCustomerOpen, formState, setters } =
     useQuotationDuplicateForm(initialData);
+
+  // Companies for the "บริษัทที่ออกเอกสาร" selector inside customer tab.
+  // Match CompanyManagerDialog pattern (no arg, no skip) — companies are
+  // shared/static and cached for 30 min by accountingApi default.
+  const {
+    data: companiesResp,
+    isLoading: loadingCompanies,
+    error: companiesError,
+  } = useGetCompaniesQuery();
+  const companies = useMemo(() => {
+    const list = companiesResp?.data ?? companiesResp ?? [];
+    return Array.isArray(list) ? list : [];
+  }, [companiesResp]);
+
+  if (import.meta.env.DEV) {
+    console.log("[QuotationDuplicateDialog] companies:", {
+      open,
+      loadingCompanies,
+      companiesResp,
+      companies,
+      companiesError,
+      qCompanyId: q?.company_id,
+      formCompanyId: formState.companyId,
+    });
+  }
 
   // Re-sync financials when source quotation / open state changes
   useQuotationDialogFinancialsInit({ quotation: q, open, setters });
@@ -105,6 +131,10 @@ const QuotationDuplicateDialog = ({
             customer={customer}
             canEdit={canEditCustomer}
             onEditCustomer={() => setters.setEditCustomerOpen(true)}
+            companyId={formState.companyId}
+            companies={companies}
+            loadingCompanies={loadingCompanies}
+            onCompanyChange={setters.setCompanyId}
           />
         </Grid>
       ),
@@ -163,6 +193,8 @@ const QuotationDuplicateDialog = ({
       quotationId,
       currentUser?.role,
       onSignatureUploaded,
+      companies,
+      loadingCompanies,
     ]
   );
 

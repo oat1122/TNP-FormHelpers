@@ -1,12 +1,18 @@
-import { Assignment as AssignmentIcon } from "@mui/icons-material";
+import { Assignment as AssignmentIcon, Business as BusinessIcon } from "@mui/icons-material";
 import {
   Avatar,
   Box,
   Chip,
+  CircularProgress,
+  FormControl,
   FormControlLabel,
   Grid,
+  InputLabel,
+  MenuItem,
   Radio,
   RadioGroup,
+  Select,
+  Stack,
   TextField,
   Typography,
 } from "@mui/material";
@@ -165,7 +171,13 @@ const CustomerSection = ({
   editableItems,
   // editing handler
   handleFieldChange,
+  // companies for company selector (edit mode only)
+  companies = [],
+  loadingCompanies = false,
 }) => {
+  const selectedCompanyId = formData?.company_id || "";
+  const selectedCompany = companies.find((c) => c.id === selectedCompanyId);
+  const selectValue = selectedCompany ? selectedCompanyId : "";
   return (
     <Grid item xs={12}>
       <Section>
@@ -187,6 +199,62 @@ const CustomerSection = ({
           {isEditing ? (
             /* === โค้ด HTML ที่ 2 (Edit Form) === */
             <Box>
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  บริษัทที่ออกเอกสาร
+                </Typography>
+                <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+                  <FormControl size="small" sx={{ minWidth: 240 }} disabled={loadingCompanies}>
+                    <InputLabel id={`invoice-company-select-label-${invoice?.id || "iv"}`}>
+                      บริษัท
+                    </InputLabel>
+                    <Select
+                      labelId={`invoice-company-select-label-${invoice?.id || "iv"}`}
+                      value={selectValue}
+                      label="บริษัท"
+                      onChange={(e) => handleFieldChange("company_id", e.target.value)}
+                      renderValue={(val) => {
+                        const found = companies.find((c) => c.id === val);
+                        return found ? found.short_code || found.name : "ไม่ระบุ";
+                      }}
+                    >
+                      {companies.map((c) => (
+                        <MenuItem key={c.id} value={c.id}>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {c.short_code || c.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {c.name}
+                            </Typography>
+                          </Stack>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {selectedCompany && (
+                    <Chip
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      icon={<BusinessIcon />}
+                      label={selectedCompany.short_code || selectedCompany.name}
+                    />
+                  )}
+
+                  {loadingCompanies && <CircularProgress size={18} />}
+                </Stack>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "block", mt: 1 }}
+                >
+                  เปลี่ยนได้เฉพาะก่อนอนุมัติ — เลขที่เอกสารจะใช้ prefix
+                  ของบริษัทที่เลือกเมื่อกดอนุมัติ
+                </Typography>
+              </Box>
+
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" gutterBottom>
                   เลือกแหล่งข้อมูลลูกค้า

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { PAYMENT_TERMS } from "../../../../shared/constants/paymentTerms";
 import { normalizeCustomer, pickQuotation } from "../../shared/utils/quotationUtils";
@@ -24,6 +24,14 @@ export function useQuotationDuplicateForm(initialData) {
   // Customer
   const [customer, setCustomer] = useState(() => normalizeCustomer(q));
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
+
+  // Company that issues the document — selectable in customer tab
+  const [companyId, setCompanyId] = useState(() => q?.company_id || "");
+
+  // Re-sync companyId when source quotation changes (e.g. dialog reopened on another row)
+  useEffect(() => {
+    setCompanyId(q?.company_id || "");
+  }, [q?.id, q?.company_id]);
 
   // Notes + due date
   const [quotationNotes, setQuotationNotes] = useState(q?.notes || "");
@@ -82,6 +90,7 @@ export function useQuotationDuplicateForm(initialData) {
 
   const formState = useMemo(
     () => ({
+      companyId,
       notes: quotationNotes,
       dueDate: selectedDueDate,
       payment: { type: paymentTermsType, custom: paymentTermsCustom },
@@ -96,6 +105,7 @@ export function useQuotationDuplicateForm(initialData) {
       pricingMode,
     }),
     [
+      companyId,
       quotationNotes,
       selectedDueDate,
       paymentTermsType,
@@ -117,6 +127,7 @@ export function useQuotationDuplicateForm(initialData) {
     () => ({
       setCustomer,
       setEditCustomerOpen,
+      setCompanyId,
       setQuotationNotes,
       setSelectedDueDate,
       setPaymentTermsType,

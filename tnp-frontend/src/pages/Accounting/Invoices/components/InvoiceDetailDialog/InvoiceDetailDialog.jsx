@@ -12,6 +12,7 @@ import {
 import React, { useState, useRef } from "react";
 
 import {
+  useGetCompaniesQuery,
   useGetInvoiceQuery,
   useUpdateInvoiceMutation,
   useGenerateInvoicePDFMutation,
@@ -43,6 +44,11 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   const { data, isLoading, error } = useGetInvoiceQuery(invoiceId, { skip: !open || !invoiceId });
   const [updateInvoice, { isLoading: isSaving }] = useUpdateInvoiceMutation();
   const [generateInvoicePDF, { isLoading: isGeneratingPdf }] = useGenerateInvoicePDFMutation();
+  const { data: companiesResp, isLoading: loadingCompanies } = useGetCompaniesQuery();
+  const companies = React.useMemo(() => {
+    const list = companiesResp?.data ?? companiesResp ?? [];
+    return Array.isArray(list) ? list : [];
+  }, [companiesResp]);
   const { currentUser, isAdmin } = useCurrentUser();
   const canEditInvoice =
     isAdmin || EDIT_INVOICE_ROLES.includes(String(currentUser?.role || "").toLowerCase());
@@ -63,6 +69,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   const [formData, setFormData] = useState({
     type: "",
     status: "",
+    company_id: "",
     customer_company: "",
     customer_tax_id: "",
     customer_address: "",
@@ -170,6 +177,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
       setFormData({
         type: invoice.type || "full_amount",
         status: invoice.status || "draft",
+        company_id: invoice.company_id || "",
         customer_company: invoice.customer_company || "",
         customer_tax_id: invoice.customer_tax_id || "",
         customer_address: invoice.customer_address || "",
@@ -635,6 +643,8 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
                     depositMode={depositMode}
                     editableItems={editableItems}
                     handleFieldChange={handleFieldChange}
+                    companies={companies}
+                    loadingCompanies={loadingCompanies}
                   />
                   <CalculationSection
                     isEditing={false}
@@ -680,6 +690,8 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
                       depositMode,
                       editableItems,
                       handleFieldChange,
+                      companies,
+                      loadingCompanies,
                     },
                     calculation: {
                       isEditing: true,

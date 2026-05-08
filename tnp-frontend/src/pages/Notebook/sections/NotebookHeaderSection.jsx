@@ -1,6 +1,18 @@
-import { Box, Button, Chip, Stack, Tab, Tabs, Typography } from "@mui/material";
+import { Box, Button, Chip, Stack, Tab, Tabs, Tooltip, Typography } from "@mui/material";
 import { MdFileDownload } from "react-icons/md";
 import { RiAddLine } from "react-icons/ri";
+
+const SCOPE_TAB_TOOLTIPS = {
+  all: "Lead ทั้งหมดในระบบ — เห็นได้เฉพาะ admin / supportsales / head",
+  queue: "Lead ที่ supportsales สร้างไว้ในคิวกลาง รอ assign ให้ sales",
+  mine: "Lead ที่อยู่ในการดูแลของคุณเอง",
+};
+
+const ScopeTabLabel = ({ scope, label }) => (
+  <Tooltip title={SCOPE_TAB_TOOLTIPS[scope]} placement="top" arrow>
+    <span>{label}</span>
+  </Tooltip>
+);
 
 const NotebookHeaderSection = ({
   total,
@@ -42,9 +54,23 @@ const NotebookHeaderSection = ({
           onChange={(_, value) => onScopeChange?.(value)}
           sx={{ mt: 1.5, minHeight: 40 }}
         >
-          {showAllScopeTab ? <Tab value="all" label="ทั้งหมด" sx={{ minHeight: 40 }} /> : null}
-          <Tab value="queue" label="คิวกลาง" sx={{ minHeight: 40 }} />
-          <Tab value="mine" label="ลูกค้าของฉัน" sx={{ minHeight: 40 }} />
+          {showAllScopeTab ? (
+            <Tab
+              value="all"
+              label={<ScopeTabLabel scope="all" label="ทั้งหมด" />}
+              sx={{ minHeight: 40 }}
+            />
+          ) : null}
+          <Tab
+            value="queue"
+            label={<ScopeTabLabel scope="queue" label="คิวกลาง" />}
+            sx={{ minHeight: 40 }}
+          />
+          <Tab
+            value="mine"
+            label={<ScopeTabLabel scope="mine" label="ลูกค้าของฉัน" />}
+            sx={{ minHeight: 40 }}
+          />
         </Tabs>
       ) : null}
     </Box>

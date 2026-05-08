@@ -22,6 +22,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { useState } from "react";
 
 import InvoiceHeaderTypeDialog from "./InvoiceHeaderTypeDialog";
 import { formatUserDisplay } from "../../../../../../utils/formatUser";
@@ -58,7 +59,6 @@ const InvoiceTableRow = ({
   idx,
   getCompanyName,
   onViewDetail,
-  onPreviewPDF,
   onGoToQuotation,
   onActionSuccess,
 }) => {
@@ -66,14 +66,35 @@ const InvoiceTableRow = ({
   const reversal = useInvoiceStatusReversal(inv);
   const downloads = useInvoiceTableDownloads();
 
+  // Preview-mode picker menu (เปิดแท็บใหม่ดู PDF "ก่อน" หรือ "หลัง")
+  const [previewAnchorEl, setPreviewAnchorEl] = useState(null);
+  const isPreviewMenuOpen = Boolean(previewAnchorEl);
+
   const sideStatus = approval.getActiveSideStatus() || "draft";
   const displayNumber = getDisplayNumber(inv, approval.depositMode);
   const sideLabel = depositSideLabel[approval.depositMode] || "-";
 
   const canApprove = approval.canUserApprove() && approval.canApproveActiveSide();
+  const beforeApproved = inv?.status_before === "approved";
+  const afterApproved = inv?.status_after === "approved";
+  const canPreviewAny = beforeApproved || afterApproved;
   const isApproved = sideStatus === "approved";
   const canRevert = approval.canUserApprove() && isApproved;
   const sourceQuotationId = inv?.quotation_id || inv?.quotation?.id || null;
+
+  const handlePreviewMenuOpen = (e) => {
+    e.stopPropagation();
+    setPreviewAnchorEl(e.currentTarget);
+  };
+
+  const handlePreviewMenuClose = () => setPreviewAnchorEl(null);
+
+  const handlePreviewSelect = (mode) => {
+    setPreviewAnchorEl(null);
+    // Reuse download flow (เปิด InvoiceHeaderTypeDialog → fetch PDF → window.open)
+    // kind="invoice" = ใบแจ้งหนี้ (ใช้ InvoicePdfMasterService — หัวกระดาษ "ใบแจ้งหนี้")
+    downloads.triggerDownload({ kind: "invoice", mode, invoice: inv });
+  };
 
   const handleApproveClick = async (e) => {
     e.stopPropagation();
@@ -214,9 +235,9 @@ const InvoiceTableRow = ({
               <span>
                 <IconButton
                   size="small"
-                  disabled={!isApproved}
-                  onClick={() => onPreviewPDF?.({ invoiceId: inv.id, mode: approval.depositMode })}
-                  sx={{ color: isApproved ? "info.main" : undefined }}
+                  disabled={!canPreviewAny}
+                  onClick={handlePreviewMenuOpen}
+                  sx={{ color: canPreviewAny ? "info.main" : undefined }}
                 >
                   <OpenInNewIcon sx={{ fontSize: 18 }} />
                 </IconButton>
@@ -330,6 +351,22 @@ const InvoiceTableRow = ({
             </MenuItem>
           );
         })}
+      </Menu>
+
+      <Menu
+        anchorEl={previewAnchorEl}
+        open={isPreviewMenuOpen}
+        onClose={handlePreviewMenuClose}
+        slotProps={{ paper: { sx: { minWidth: 160 } } }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <MenuItem onClick={() => handlePreviewSelect("before")} disabled={!beforeApproved}>
+          <ListItemText primaryTypographyProps={{ fontSize: "0.85rem" }}>ใบมัดจำก่อน</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handlePreviewSelect("after")} disabled={!afterApproved}>
+          <ListItemText primaryTypographyProps={{ fontSize: "0.85rem" }}>ใบมัดจำหลัง</ListItemText>
+        </MenuItem>
       </Menu>
 
       <InvoiceHeaderTypeDialog

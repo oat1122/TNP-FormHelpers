@@ -1,9 +1,6 @@
 import dayjs from "dayjs";
 
-import {
-  shouldNotebookCreateIntoMine,
-  shouldNotebookCreateIntoQueue,
-} from "../../../utils/userAccess";
+import { shouldNotebookCreateIntoQueue } from "../../../utils/userAccess";
 
 export const getStoredNotebookUser = () => {
   try {
@@ -51,9 +48,7 @@ export const buildNotebookDraft = ({ notebook, currentUser, isAdmin }) => ({
       : (notebook?.nb_manage_by ?? currentUser?.user_id ?? null),
   nb_workflow:
     notebook?.nb_workflow ||
-    (shouldNotebookCreateIntoQueue(currentUser) || shouldNotebookCreateIntoMine(currentUser)
-      ? "lead_queue"
-      : "standard"),
+    (shouldNotebookCreateIntoQueue(currentUser) ? "lead_queue" : "standard"),
   nb_entry_type: notebook?.nb_entry_type || "standard",
   nb_source_type: notebook?.nb_source_type || "",
   nb_source_customer_id: notebook?.nb_source_customer_id || null,

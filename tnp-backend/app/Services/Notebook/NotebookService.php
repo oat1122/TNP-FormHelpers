@@ -738,6 +738,10 @@ class NotebookService
             return $assignee;
         }
 
+        if (UserSubRoleHelper::hasAnySubRole($assignee, [UserSubRoleHelper::SUPPORT_SALES])) {
+            return $assignee;
+        }
+
         $canSupportSalesAssignToHeadOffline = UserSubRoleHelper::hasAnySubRole($actingUser, [UserSubRoleHelper::SUPPORT_SALES])
             && UserSubRoleHelper::hasAnySubRole($assignee, [UserSubRoleHelper::HEAD_OFFLINE]);
 
@@ -753,7 +757,7 @@ class NotebookService
             return $assignee;
         }
 
-        throw new \DomainException('Selected assignee must be an active SALES_OFFLINE user or an eligible HEAD_OFFLINE user.');
+        throw new \DomainException('Selected assignee must be an active SALES_OFFLINE, SUPPORT_SALES, or eligible HEAD_OFFLINE user.');
     }
 
     protected function buildCustomerPayloadFromLeadNotebook(Notebook $notebook): array

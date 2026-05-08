@@ -21,11 +21,12 @@ export function buildQuotationDuplicatePayload({
   dueDate,
   mode = "duplicate",
 }) {
-  const { specialDiscount, withholding, vat, pricingMode, deposit, payment, notes } = formState;
+  const { companyId, specialDiscount, withholding, vat, pricingMode, deposit, payment, notes } =
+    formState;
   const isEdit = mode === "edit";
 
   const payload = {
-    company_id: sourceQuotation.company_id,
+    company_id: companyId || sourceQuotation.company_id,
     customer_id: customer?.cus_id || sourceQuotation.customer_id,
     work_name: sourceQuotation.work_name,
 

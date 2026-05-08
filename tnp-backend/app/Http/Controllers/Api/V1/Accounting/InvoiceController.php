@@ -453,8 +453,9 @@ class InvoiceController extends Controller
         $headerTypes = $request->input('headerTypes');
 
         // Single header: use service method directly
+        // ส่ง $id (string UUID) — Service::generatePdf() จะ findOrFail($id) ภายใน
         if (empty($headerTypes) || ! is_array($headerTypes)) {
-            return $this->downloadPdfResponse($this->invoiceService, $invoice, $options, 'invoice');
+            return $this->downloadPdfResponse($this->invoiceService, $id, $options, 'invoice');
         }
 
         // Multi-header: use trait method for ZIP generation

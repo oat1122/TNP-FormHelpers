@@ -45,25 +45,68 @@ const NotebookTableSkeleton = ({ isCompact }) => (
   </Box>
 );
 
-const NotebookTableEmptyState = ({ filterSummary }) => (
-  <Stack
-    sx={{ height: "100%", alignItems: "center", justifyContent: "center", px: 3, py: 4 }}
-    spacing={1.25}
-  >
-    <Typography variant="h6" color="text.secondary" sx={{ textAlign: "center" }}>
-      ไม่พบรายการ Notebook ในเงื่อนไขที่เลือก
-    </Typography>
-    <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", maxWidth: 480 }}>
-      ลองเปลี่ยนคำค้นหา สถานะ วันที่ หรือผู้ดูแล แล้วตรวจสอบอีกครั้ง
-    </Typography>
+const SCOPE_EMPTY_COPY = {
+  queue: {
+    title: "คิวกลางว่าง",
+    body: "ยังไม่มี lead รอจัดสรรในคิวกลาง เมื่อ supportsales สร้าง lead ใหม่จะปรากฏที่นี่",
+  },
+  mine: {
+    title: "ยังไม่มีลูกค้าในการดูแล",
+    body: "คุณยังไม่มี lead ที่ถูก assign — กดปุ่ม 'จดบันทึก' หรือ 'เพิ่มลูกค้าเข้าตัวเอง' ที่ด้านบนเพื่อสร้าง",
+  },
+  all: {
+    title: "ยังไม่มีรายการในระบบ",
+    body: "ยังไม่มี Notebook ในระบบ ลองสร้างรายการแรกได้เลย",
+  },
+};
 
-    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" justifyContent="center">
-      {filterSummary.chips.map((chip) => (
-        <Chip key={chip.key} label={chip.label} size="small" variant="outlined" />
-      ))}
+const NotebookTableEmptyState = ({ filterSummary, scopeFilter }) => {
+  if (filterSummary?.hasCustomFilters) {
+    return (
+      <Stack
+        sx={{ height: "100%", alignItems: "center", justifyContent: "center", px: 3, py: 4 }}
+        spacing={1.25}
+      >
+        <Typography variant="h6" color="text.secondary" sx={{ textAlign: "center" }}>
+          ไม่พบรายการ Notebook ในเงื่อนไขที่เลือก
+        </Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ textAlign: "center", maxWidth: 480 }}
+        >
+          ลองเปลี่ยนคำค้นหา สถานะ วันที่ หรือผู้ดูแล แล้วตรวจสอบอีกครั้ง
+        </Typography>
+
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" justifyContent="center">
+          {filterSummary.chips.map((chip) => (
+            <Chip key={chip.key} label={chip.label} size="small" variant="outlined" />
+          ))}
+        </Stack>
+      </Stack>
+    );
+  }
+
+  const copy = SCOPE_EMPTY_COPY[scopeFilter] || SCOPE_EMPTY_COPY.all;
+
+  return (
+    <Stack
+      sx={{ height: "100%", alignItems: "center", justifyContent: "center", px: 3, py: 4 }}
+      spacing={1.25}
+    >
+      <Typography variant="h6" color="text.secondary" sx={{ textAlign: "center" }}>
+        {copy.title}
+      </Typography>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ textAlign: "center", maxWidth: 480 }}
+      >
+        {copy.body}
+      </Typography>
     </Stack>
-  </Stack>
-);
+  );
+};
 
 const NotebookTableErrorState = ({ onRetry }) => (
   <Box sx={{ p: 3 }}>
@@ -183,7 +226,7 @@ const NotebookTable = ({
                 selectionState={selectionState}
               />
             ) : (
-              <NotebookTableEmptyState filterSummary={filterSummary} />
+              <NotebookTableEmptyState filterSummary={filterSummary} scopeFilter={scopeFilter} />
             )
           ) : (
             <NotebookActionTable
@@ -196,7 +239,9 @@ const NotebookTable = ({
               canReserveQueue={canReserveQueue}
               queueActionMode={queueActionMode}
               selectionState={selectionState}
-              onNoRowsOverlay={() => <NotebookTableEmptyState filterSummary={filterSummary} />}
+              onNoRowsOverlay={() => (
+                <NotebookTableEmptyState filterSummary={filterSummary} scopeFilter={scopeFilter} />
+              )}
             />
           )}
         </Box>

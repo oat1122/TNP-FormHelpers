@@ -55,6 +55,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    // Auth verification for sibling apps (tnp-ceo-report middleware).
+    // Returns the current user; auth:sanctum bounces invalid tokens to 401.
+    Route::get('/auth/me', [AuthController::class, 'me']);
+
     // Socket auth — issues short-lived HMAC token for tnp-notification handshake.
     // See tnp-notification/.claude/rules/socket-auth.md for the contract.
     Route::get('/auth/socket-token', [SocketTokenController::class, 'issue']);

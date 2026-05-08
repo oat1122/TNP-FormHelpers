@@ -62,6 +62,36 @@ class AuthController extends Controller
         }
     }
 
+    // Auth verification — used by sibling apps (e.g. tnp-ceo-report
+    // Next.js middleware) to verify a Sanctum token before serving
+    // protected pages. Returns 401 automatically via auth:sanctum if the
+    // token is missing/invalid.
+    public function me(Request $request)
+    {
+        $user = $request->user();
+
+        $user->load('subRoles:msr_id,msr_code,msr_name');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user_id' => $user->user_id,
+                'user_uuid' => $user->user_uuid,
+                'username' => $user->username,
+                'role' => $user->role,
+                'user_firstname' => $user->user_firstname,
+                'user_lastname' => $user->user_lastname,
+                'user_nickname' => $user->user_nickname,
+                'user_emp_no' => $user->user_emp_no,
+                'sub_roles' => $user->subRoles->map(fn ($sr) => [
+                    'msr_id' => $sr->msr_id,
+                    'msr_code' => $sr->msr_code,
+                    'msr_name' => $sr->msr_name,
+                ])->values(),
+            ],
+        ]);
+    }
+
     // Logout function
     public function logout(Request $request)
     {

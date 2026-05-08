@@ -27,6 +27,7 @@ import {
 } from "@mui/material";
 
 import "./AppHeader.css";
+import { clearSharedAuthCookie } from "../../utils/sharedAuthCookie";
 import NavDropdown from "react-bootstrap/NavDropdown";
 import { IconContext } from "react-icons";
 import { BsPersonSquare } from "react-icons/bs";
@@ -122,10 +123,12 @@ function AppHeader() {
 
       if (res.data.status === "success") {
         localStorage.clear();
+        clearSharedAuthCookie();
         navigate("/login");
       }
     } catch (e) {
       localStorage.clear();
+      clearSharedAuthCookie();
       navigate("/login");
       console.error("Logout failed: ", e.response?.data);
     }

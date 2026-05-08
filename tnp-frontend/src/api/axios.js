@@ -1,6 +1,22 @@
 import axios from "axios";
 
 import { apiConfig } from "./apiConfig";
+import {
+  clearSharedAuthCookie,
+  setSharedAuthCookie,
+} from "../utils/sharedAuthCookie";
+
+// Boot-time hydration: re-establish the cross-origin cookie from
+// localStorage so a page reload (or HMR) after login keeps sibling apps
+// (tnp-ceo-report) authenticated without forcing logout/login.
+// Safe to run on every load — same value rewritten is a no-op for the
+// browser, and missing token / no domain config short-circuits inside
+// the helper.
+if (typeof window !== "undefined") {
+  const hydrateToken =
+    localStorage.getItem("authToken") || localStorage.getItem("token");
+  if (hydrateToken) setSharedAuthCookie(hydrateToken);
+}
 
 const instance = axios.create({
   baseURL: apiConfig.baseUrl,
@@ -17,6 +33,7 @@ const clearAuthStorage = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("userData");
   localStorage.removeItem("isLoggedIn");
+  clearSharedAuthCookie();
 };
 
 // Helper to parse JWT (since we might not have jwt-decode)

@@ -4,6 +4,7 @@ import { Container, Row, Col, Form, Card } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
 import axios from "../../api/axios";
+import { setSharedAuthCookie } from "../../utils/sharedAuthCookie";
 
 import "./AppLogin.css";
 
@@ -75,6 +76,11 @@ const AppLogin = () => {
         localStorage.setItem("userData", JSON.stringify(data));
         localStorage.setItem("authToken", token);
         localStorage.setItem("token", token);
+
+        // Cross-origin handoff for sibling TNP apps (e.g. tnp-ceo-report
+        // on :3001) — see utils/sharedAuthCookie.js. localStorage is
+        // origin-scoped so cannot be read across ports/domains.
+        setSharedAuthCookie(token);
 
         // Remove any existing tokenExpiry to prevent token expiry issues
         localStorage.removeItem("tokenExpiry");

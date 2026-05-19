@@ -18,6 +18,7 @@ use App\Http\Requests\V1\Accounting\UploadQuotationEvidenceRequest;
 use App\Http\Requests\V1\Accounting\UploadQuotationSampleImagesRequest;
 use App\Http\Requests\V1\Accounting\UploadQuotationSampleImagesTempRequest;
 use App\Http\Requests\V1\Accounting\UploadQuotationSignaturesRequest;
+use App\Http\Resources\V1\Accounting\QuotationResource;
 use App\Models\Accounting\Quotation;
 use App\Services\Accounting\QuotationService;
 use App\Traits\ApiResponseHelper;
@@ -113,7 +114,10 @@ class QuotationController extends Controller
                 'items',
             ])->findOrFail($id);
 
-            return $this->successResponse($quotation, 'Quotation retrieved successfully');
+            return $this->successResponse(
+                new QuotationResource($quotation),
+                'Quotation retrieved successfully'
+            );
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return $this->notFoundResponse('Quotation');

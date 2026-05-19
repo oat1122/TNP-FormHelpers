@@ -17,6 +17,7 @@ use App\Http\Requests\V1\Accounting\UpdateDepositModeRequest;
 use App\Http\Requests\V1\Accounting\UpdateInvoiceRequest;
 use App\Http\Requests\V1\Accounting\UploadEvidenceByModeRequest;
 use App\Http\Requests\V1\Accounting\UploadEvidenceRequest;
+use App\Http\Resources\V1\Accounting\InvoiceResource;
 use App\Services\Accounting\InvoiceService;
 use App\Services\Accounting\Pdf\ReceiptFullPdfMasterService;
 use App\Services\Accounting\Pdf\ReceiptPdfMasterService;
@@ -128,7 +129,10 @@ class InvoiceController extends Controller
                 'customer', 'manager', 'company', 'referenceInvoice', 'afterDepositInvoices',
             ])->findOrFail($id);
 
-            return $this->successResponse($invoice, 'Invoice details retrieved successfully');
+            return $this->successResponse(
+                new InvoiceResource($invoice),
+                'Invoice details retrieved successfully'
+            );
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return $this->notFoundResponse('Invoice');
         } catch (\Exception $e) {

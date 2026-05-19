@@ -93,7 +93,7 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
         $customer = CustomerInfoExtractor::fromInvoice($invoice);
         // **** ใช้ Logic การ Group Items ให้เหมือน Quotation ****
         $groups = $this->groupItemsForQuotationTemplate($invoice);
-        $summary = $this->buildFinancialSummary($invoice);
+        $summary = $this->buildFinancialSummary($invoice, $options);
 
         $isFinal = in_array($invoice->status, ['approved', 'sent', 'completed', 'partial_paid', 'fully_paid'], true);
 

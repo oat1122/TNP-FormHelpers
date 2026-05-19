@@ -11,6 +11,7 @@ use App\Http\Requests\V1\Accounting\RejectReceiptRequest;
 use App\Http\Requests\V1\Accounting\StoreReceiptRequest;
 use App\Http\Requests\V1\Accounting\UpdateReceiptRequest;
 use App\Http\Requests\V1\Accounting\UploadReceiptEvidenceRequest;
+use App\Http\Resources\V1\Accounting\ReceiptResource;
 use App\Services\Accounting\ReceiptService;
 use App\Traits\ApiResponseHelper;
 use Illuminate\Http\JsonResponse;
@@ -69,7 +70,10 @@ class ReceiptController extends Controller
                 'attachments',
             ])->findOrFail($id);
 
-            return $this->successResponse($receipt, 'Receipt details retrieved successfully');
+            return $this->successResponse(
+                new ReceiptResource($receipt),
+                'Receipt details retrieved successfully'
+            );
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return $this->notFoundResponse('Receipt');
         } catch (\Exception $e) {

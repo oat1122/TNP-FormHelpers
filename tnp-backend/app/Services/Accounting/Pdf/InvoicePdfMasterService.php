@@ -106,7 +106,7 @@ class InvoicePdfMasterService extends BasePdfMasterService
 
         $customer = CustomerInfoExtractor::fromInvoice($i);
         $items = $this->getInvoiceItems($i);
-        $summary = $this->buildFinancialSummary($i);
+        $summary = $this->buildFinancialSummary($i, $options);
 
         // สร้างข้อมูล groups สำหรับ deposit-after mode
         $groups = $this->groupInvoiceItems($i);
@@ -285,9 +285,10 @@ class InvoicePdfMasterService extends BasePdfMasterService
     /**
      * สร้างสรุปทางการเงิน
      *
+     * @param  array<string, mixed>  $options  ตัวเลือกการสร้าง PDF (ส่ง deposit_mode มาเพื่อ override deposit_display_order)
      * @return array<string, mixed>
      */
-    protected function buildFinancialSummary(Invoice $invoice): array
+    protected function buildFinancialSummary(Invoice $invoice, array $options = []): array
     {
         // Basic financial data
         $subtotal = (float) ($invoice->subtotal ?? 0);
@@ -301,7 +302,7 @@ class InvoicePdfMasterService extends BasePdfMasterService
         $withholdingTaxAmount = (float) ($invoice->withholding_tax_amount ?? 0);
 
         // Calculate deposit-after specific amounts
-        $depositAfterCalculations = $this->calculateDepositAfterAmounts($invoice);
+        $depositAfterCalculations = $this->calculateDepositAfterAmounts($invoice, $options);
 
         return [
             'subtotal' => $subtotal,
@@ -326,14 +327,19 @@ class InvoicePdfMasterService extends BasePdfMasterService
     /**
      * คำนวณยอดเงินสำหรับใบวางบิลหลังมัดจำ
      *
+     * @param  array<string, mixed>  $options  ส่ง deposit_mode มาเพื่อ override ค่าใน DB
+     *                                         เช่น user เลือกโหลด PDF "หลัง" แต่ใบนี้ DB เป็น "before"
      * @return array<string, mixed>
      */
-    protected function calculateDepositAfterAmounts(Invoice $invoice): array
+    protected function calculateDepositAfterAmounts(Invoice $invoice, array $options = []): array
     {
+        // เลือก deposit mode จาก options ก่อน (ตามที่ user กดเลือกใน UI) แล้วค่อย fallback ไป DB
+        $depositMode = $options['deposit_mode'] ?? $invoice->deposit_display_order ?? 'before';
+
         // ตรวจสอบว่าเป็นใบวางบิลหลังมัดจำหรือไม่
         $isDepositAfter = (
             ($invoice->type ?? '') === 'remaining' ||
-            ($invoice->deposit_display_order ?? '') === 'after'
+            $depositMode === 'after'
         );
 
         if (! $isDepositAfter) {
@@ -366,8 +372,9 @@ class InvoicePdfMasterService extends BasePdfMasterService
         $depositPaidBeforeVat = 0;
         $referenceInvoiceNumber = '';
 
-        // กรณีพิเศษ: ถ้าเป็น deposit แต่แสดงผลแบบ after (ใบมัดจำเดียวที่แสดงยอดคงเหลือ)
-        if (($invoice->type ?? '') === 'deposit' && ($invoice->deposit_display_order ?? '') === 'after') {
+        // กรณีพิเศษ: ถ้าเป็น deposit แต่ user เลือกดูแบบ after (ใบมัดจำเดียวกันแสดงยอดคงเหลือ)
+        // เช็คจาก $depositMode (UI choice) ไม่ใช่ DB column เพราะใบเดียวสามารถดูได้ทั้ง before/after
+        if (($invoice->type ?? '') === 'deposit' && $depositMode === 'after') {
             // ใช้ deposit_amount_before_vat ของตัวเองเป็นยอดที่หัก
             $depositPaidBeforeVat = (float) ($invoice->deposit_amount_before_vat ?? 0);
             $referenceInvoiceNumber = $invoice->number_before ?: ($invoice->number ?? '');

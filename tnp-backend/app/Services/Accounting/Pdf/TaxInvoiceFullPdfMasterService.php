@@ -94,7 +94,7 @@ class TaxInvoiceFullPdfMasterService extends InvoicePdfMasterService
         // **** ใช้ Logic การ Group Items ให้เหมือน Quotation ****
         $groups = $this->groupItemsForQuotationTemplate($invoice);
         // **** สร้าง Summary ที่อาจจะต้องใช้ใน Header ****
-        $summary = $this->buildFinancialSummary($invoice);
+        $summary = $this->buildFinancialSummary($invoice, $options);
 
         $isFinal = in_array($invoice->status, ['approved', 'sent', 'completed', 'partial_paid', 'fully_paid'], true);
 

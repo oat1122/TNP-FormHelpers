@@ -15,6 +15,7 @@ import {
   SecondaryButton,
   tokens,
 } from "../../../../shared/styles/quotationFormStyles";
+import { ALLOWED_IMAGE_MIMES, validateFiles } from "../../../../shared/utils/fileValidation";
 import {
   showSuccess,
   showError,
@@ -72,9 +73,19 @@ const EvidenceSection = ({
   const handleUploadSignatures = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
+
+    const { valid, validFiles, errors } = validateFiles(files, {
+      allowedMimes: ALLOWED_IMAGE_MIMES,
+    });
+    if (!valid) {
+      errors.forEach((msg) => showError(msg));
+      e.target.value = "";
+      if (!validFiles.length) return;
+    }
+
     const loadingId = showLoading("กำลังอัปโหลดหลักฐานการเซ็น…");
     try {
-      const res = await uploadSignatures({ id: quotationId, files }).unwrap();
+      const res = await uploadSignatures({ id: quotationId, files: validFiles }).unwrap();
       const updated = res?.data?.signature_images || res?.signature_images;
       if (Array.isArray(updated)) setLocalSignatures(updated);
       dismissToast(loadingId);
@@ -91,9 +102,19 @@ const EvidenceSection = ({
   const handleUploadSamples = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
+
+    const { valid, validFiles, errors } = validateFiles(files, {
+      allowedMimes: ALLOWED_IMAGE_MIMES,
+    });
+    if (!valid) {
+      errors.forEach((msg) => showError(msg));
+      e.target.value = "";
+      if (!validFiles.length) return;
+    }
+
     const loadingId = showLoading("กำลังอัปโหลดรูปภาพตัวอย่าง…");
     try {
-      const res = await uploadSampleImages({ id: quotationId, files }).unwrap();
+      const res = await uploadSampleImages({ id: quotationId, files: validFiles }).unwrap();
       const updated = res?.data?.sample_images || res?.sample_images;
       if (Array.isArray(updated)) setLocalSamples(updated);
       dismissToast(loadingId);

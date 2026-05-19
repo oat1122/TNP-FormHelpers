@@ -42,7 +42,9 @@ export const downloadFileWithFetch = async (url, filename) => {
     // Clean up blob URL
     window.URL.revokeObjectURL(blobUrl);
   } catch (error) {
-    console.error("Download failed:", error);
+    if (import.meta.env.DEV) {
+      console.error("Download failed:", error);
+    }
     // Fallback to simple link
     downloadFile(url, filename);
   }

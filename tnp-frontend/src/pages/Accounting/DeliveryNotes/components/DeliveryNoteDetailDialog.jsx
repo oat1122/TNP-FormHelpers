@@ -44,7 +44,9 @@ const DeliveryNoteDetailDialog = ({ open, onClose, deliveryNoteId, onUpdated }) 
       await refetch();
       onUpdated?.();
     } catch (e) {
-      console.error("Start shipping failed", e);
+      if (import.meta.env.DEV) {
+        console.error("Start shipping failed", e);
+      }
     }
   };
 
@@ -59,7 +61,9 @@ const DeliveryNoteDetailDialog = ({ open, onClose, deliveryNoteId, onUpdated }) 
       await refetch();
       onUpdated?.();
     } catch (e) {
-      console.error("Update tracking failed", e);
+      if (import.meta.env.DEV) {
+        console.error("Update tracking failed", e);
+      }
     }
   };
 
@@ -69,7 +73,9 @@ const DeliveryNoteDetailDialog = ({ open, onClose, deliveryNoteId, onUpdated }) 
       await refetch();
       onUpdated?.();
     } catch (e) {
-      console.error("Mark delivered failed", e);
+      if (import.meta.env.DEV) {
+        console.error("Mark delivered failed", e);
+      }
     }
   };
 
@@ -79,7 +85,9 @@ const DeliveryNoteDetailDialog = ({ open, onClose, deliveryNoteId, onUpdated }) 
       await refetch();
       onUpdated?.();
     } catch (e) {
-      console.error("Mark completed failed", e);
+      if (import.meta.env.DEV) {
+        console.error("Mark completed failed", e);
+      }
     }
   };
 
@@ -89,7 +97,9 @@ const DeliveryNoteDetailDialog = ({ open, onClose, deliveryNoteId, onUpdated }) 
       await refetch();
       onUpdated?.();
     } catch (e) {
-      console.error("Mark failed failed", e);
+      if (import.meta.env.DEV) {
+        console.error("Mark failed failed", e);
+      }
     }
   };
 

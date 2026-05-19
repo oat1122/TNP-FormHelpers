@@ -2,13 +2,22 @@
 
 namespace App\Http\Controllers\Api\V1\Accounting;
 
+use App\Helpers\AccountingHelper;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\V1\Accounting\CreateDeliveryNoteFromReceiptRequest;
+use App\Http\Requests\V1\Accounting\MarkDeliveredRequest;
+use App\Http\Requests\V1\Accounting\MarkDeliveryCompletedRequest;
+use App\Http\Requests\V1\Accounting\MarkDeliveryFailedRequest;
+use App\Http\Requests\V1\Accounting\StartShippingRequest;
+use App\Http\Requests\V1\Accounting\StoreDeliveryNoteRequest;
+use App\Http\Requests\V1\Accounting\UpdateDeliveryNoteRequest;
+use App\Http\Requests\V1\Accounting\UpdateTrackingRequest;
+use App\Http\Requests\V1\Accounting\UploadDeliveryEvidenceRequest;
 use App\Services\Accounting\DeliveryNoteService;
 use App\Traits\ApiResponseHelper;
-use App\Helpers\AccountingHelper;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class DeliveryNoteController extends Controller
 {
@@ -37,7 +46,7 @@ class DeliveryNoteController extends Controller
                 'customer_id' => $request->query('customer_id'),
                 'courier_company' => $request->query('courier_company'),
                 'date_from' => $request->query('date_from'),
-                'date_to' => $request->query('date_to')
+                'date_to' => $request->query('date_to'),
             ];
 
             $perPage = AccountingHelper::sanitizePerPage($request->query('per_page', 20), 20, 50);
@@ -112,7 +121,7 @@ class DeliveryNoteController extends Controller
                 'manager',
                 'items',
                 'documentHistory',
-                'attachments'
+                'attachments',
             ])->findOrFail($id);
 
             return $this->successResponse($deliveryNote, 'Delivery note details retrieved successfully');
@@ -127,58 +136,11 @@ class DeliveryNoteController extends Controller
      * สร้าง Delivery Note แบบ Manual
      * POST /api/v1/delivery-notes
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreDeliveryNoteRequest $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'company_id' => 'nullable|string|exists:companies,id',
-                'invoice_id' => 'nullable|string|exists:invoices,id',
-                'invoice_item_id' => 'nullable|string|exists:invoice_items,id',
-                'invoice_number' => 'nullable|string|max:50',
-                'customer_id' => 'nullable|string|exists:master_customers,cus_id',
-                'customer_data_source' => 'nullable|in:master,delivery',
-                'customer_company' => 'nullable|string|max:255',
-                'customer_address' => 'nullable|string|max:500',
-                'customer_zip_code' => 'nullable|string|max:10',
-                'customer_tel_1' => 'nullable|string|max:50',
-                'customer_tax_id' => 'nullable|string|max:50',
-                'customer_firstname' => 'nullable|string|max:100',
-                'customer_lastname' => 'nullable|string|max:100',
-                'customer_snapshot' => 'nullable',
-                'work_name' => 'nullable|string|max:255',
-                'quantity' => 'nullable|string|max:50',
-                'delivery_method' => 'nullable|in:self_delivery,courier,customer_pickup',
-                'delivery_address' => 'nullable|string|max:500',
-                'recipient_name' => 'nullable|string|max:255',
-                'recipient_phone' => 'nullable|string|max:50',
-                'delivery_date' => 'nullable|date',
-                'courier_company' => 'nullable|string|max:100',
-                'tracking_number' => 'nullable|string|max:100',
-                'delivery_notes' => 'nullable|string|max:1000',
-                'notes' => 'nullable|string|max:1000',
-                'sender_company_id' => 'nullable|string|exists:companies,id',
-                'manage_by' => 'nullable|integer|exists:users,user_id',
-                'items' => 'sometimes|array',
-                'items.*.sequence_order' => 'nullable|integer|min:1',
-                'items.*.item_name' => 'required_with:items|string|max:255',
-                'items.*.item_description' => 'nullable|string',
-                'items.*.pattern' => 'nullable|string|max:255',
-                'items.*.fabric_type' => 'nullable|string|max:255',
-                'items.*.color' => 'nullable|string|max:255',
-                'items.*.size' => 'nullable|string|max:255',
-                'items.*.delivered_quantity' => 'nullable|integer|min:0',
-                'items.*.unit' => 'nullable|string|max:50',
-                'items.*.invoice_id' => 'nullable|string|exists:invoices,id',
-                'items.*.invoice_item_id' => 'nullable|string|exists:invoice_items,id',
-                'items.*.item_snapshot' => 'nullable',
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
             $createdBy = AccountingHelper::getCurrentUserId();
-            $deliveryNote = $this->deliveryNoteService->create($validator->validated(), $createdBy);
+            $deliveryNote = $this->deliveryNoteService->create($request->validated(), $createdBy);
 
             return $this->successResponse($deliveryNote, 'Delivery note created successfully', 201);
         } catch (\Exception $e) {
@@ -190,54 +152,11 @@ class DeliveryNoteController extends Controller
      * แก้ไข Delivery Note
      * PUT /api/v1/delivery-notes/{id}
      */
-    public function update(Request $request, $id): JsonResponse
+    public function update(UpdateDeliveryNoteRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'customer_company' => 'sometimes|string|max:255',
-                'invoice_id' => 'sometimes|string|exists:invoices,id',
-                'invoice_item_id' => 'sometimes|string|exists:invoice_items,id',
-                'customer_address' => 'sometimes|string|max:500',
-                'work_name' => 'sometimes|string|max:255',
-                'delivery_method' => 'sometimes|in:self_delivery,courier,customer_pickup',
-                'delivery_address' => 'sometimes|string|max:500',
-                'recipient_name' => 'sometimes|string|max:255',
-                'recipient_phone' => 'sometimes|string|max:50',
-                'delivery_date' => 'sometimes|date|after_or_equal:today',
-                'courier_company' => 'sometimes|string|max:100',
-                'tracking_number' => 'sometimes|string|max:100',
-                'delivery_notes' => 'sometimes|string|max:1000',
-                'notes' => 'sometimes|string|max:1000',
-                'customer_tel_1' => 'sometimes|string|max:50',
-                'customer_firstname' => 'sometimes|string|max:255',
-                'customer_lastname' => 'sometimes|string|max:255',
-                'customer_tax_id' => 'sometimes|string|max:50',
-                'customer_data_source' => 'sometimes|in:master,delivery',
-                'customer_snapshot' => 'sometimes',
-                'sender_company_id' => 'sometimes|string|exists:companies,id',
-                'manage_by' => 'sometimes|integer|exists:users,user_id',
-                // Items update support
-                'items' => 'sometimes|array',
-                'items.*.sequence_order' => 'nullable|integer|min:1',
-                'items.*.item_name' => 'nullable|string|max:255',
-                'items.*.item_description' => 'nullable|string|max:500',
-                'items.*.pattern' => 'nullable|string|max:255',
-                'items.*.fabric_type' => 'nullable|string|max:255',
-                'items.*.color' => 'nullable|string|max:255',
-                'items.*.size' => 'nullable|string|max:255',
-                'items.*.delivered_quantity' => 'nullable|integer|min:0',
-                'items.*.unit' => 'nullable|string|max:50',
-                'items.*.invoice_id' => 'nullable|string|exists:invoices,id',
-                'items.*.invoice_item_id' => 'nullable|string|exists:invoice_items,id',
-                'items.*.item_snapshot' => 'nullable',
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
             $updatedBy = AccountingHelper::getCurrentUserId();
-            $deliveryNote = $this->deliveryNoteService->update($id, $validator->validated(), $updatedBy);
+            $deliveryNote = $this->deliveryNoteService->update($id, $request->validated(), $updatedBy);
 
             return $this->successResponse($deliveryNote, 'Delivery note updated successfully');
         } catch (\Exception $e) {
@@ -249,11 +168,12 @@ class DeliveryNoteController extends Controller
      * ลบ Delivery Note
      * DELETE /api/v1/delivery-notes/{id}
      */
-    public function destroy($id): JsonResponse
+    public function destroy(Request $request, $id): JsonResponse
     {
         try {
-            if (!AccountingHelper::hasRole(['admin', 'account'])) {
-                return $this->forbiddenResponse('Only admin/account can delete delivery notes');
+            // Authorization via Gate (replaces inline AccountingHelper::hasRole)
+            if (! $request->user()?->can('delivery-note.destroy')) {
+                return $this->forbiddenResponse('Only admin/manager/account can delete delivery notes');
             }
 
             $deliveryNote = \App\Models\Accounting\DeliveryNote::findOrFail($id);
@@ -263,6 +183,7 @@ class DeliveryNoteController extends Controller
             }
 
             $deliveryNote->delete();
+
             return $this->successResponse(null, 'Delivery note deleted successfully');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return $this->notFoundResponse('Delivery note');
@@ -275,26 +196,10 @@ class DeliveryNoteController extends Controller
      * สร้าง Delivery Note จาก Receipt
      * POST /api/v1/delivery-notes/create-from-receipt
      */
-    public function createFromReceipt(Request $request): JsonResponse
+    public function createFromReceipt(CreateDeliveryNoteFromReceiptRequest $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'receipt_id' => 'required|string|exists:receipts,id',
-                'delivery_method' => 'required|in:self_delivery,courier,customer_pickup',
-                'courier_company' => 'required_if:delivery_method,courier|string|max:100',
-                'delivery_address' => 'nullable|string|max:500',
-                'recipient_name' => 'nullable|string|max:255',
-                'recipient_phone' => 'nullable|string|max:50',
-                'delivery_date' => 'nullable|date|after_or_equal:today',
-                'delivery_notes' => 'nullable|string|max:1000',
-                'notes' => 'nullable|string|max:1000'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
-            $validated = $validator->validated();
+            $validated = $request->validated();
             $createdBy = AccountingHelper::getCurrentUserId();
             $deliveryNote = $this->deliveryNoteService->createFromReceipt(
                 $validated['receipt_id'],
@@ -312,21 +217,11 @@ class DeliveryNoteController extends Controller
      * เริ่มการจัดส่ง
      * POST /api/v1/delivery-notes/{id}/start-shipping
      */
-    public function startShipping(Request $request, $id): JsonResponse
+    public function startShipping(StartShippingRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'tracking_number' => 'nullable|string|max:100',
-                'courier_company' => 'nullable|string|max:100',
-                'notes' => 'nullable|string|max:1000'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
             $shippedBy = AccountingHelper::getCurrentUserId();
-            $deliveryNote = $this->deliveryNoteService->startShipping($id, $request->all(), $shippedBy);
+            $deliveryNote = $this->deliveryNoteService->startShipping($id, $request->validated(), $shippedBy);
 
             return $this->successResponse($deliveryNote, 'Shipping started successfully');
         } catch (\Exception $e) {
@@ -338,21 +233,11 @@ class DeliveryNoteController extends Controller
      * อัปเดตสถานะการติดตาม
      * POST /api/v1/delivery-notes/{id}/update-tracking
      */
-    public function updateTracking(Request $request, $id): JsonResponse
+    public function updateTracking(UpdateTrackingRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'status_description' => 'required|string|max:255',
-                'location' => 'nullable|string|max:255',
-                'notes' => 'nullable|string|max:1000'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
             $updatedBy = AccountingHelper::getCurrentUserId();
-            $deliveryNote = $this->deliveryNoteService->updateTrackingStatus($id, $request->all(), $updatedBy);
+            $deliveryNote = $this->deliveryNoteService->updateTrackingStatus($id, $request->validated(), $updatedBy);
 
             return $this->successResponse($deliveryNote, 'Tracking status updated successfully');
         } catch (\Exception $e) {
@@ -364,20 +249,11 @@ class DeliveryNoteController extends Controller
      * ยืนยันการส่งสำเร็จ
      * POST /api/v1/delivery-notes/{id}/mark-delivered
      */
-    public function markDelivered(Request $request, $id): JsonResponse
+    public function markDelivered(MarkDeliveredRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'recipient_name' => 'nullable|string|max:255',
-                'delivery_notes' => 'nullable|string|max:1000'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
             $deliveredBy = AccountingHelper::getCurrentUserId();
-            $deliveryNote = $this->deliveryNoteService->markAsDelivered($id, $request->all(), $deliveredBy);
+            $deliveryNote = $this->deliveryNoteService->markAsDelivered($id, $request->validated(), $deliveredBy);
 
             return $this->successResponse($deliveryNote, 'Delivery marked as successful');
         } catch (\Exception $e) {
@@ -389,19 +265,11 @@ class DeliveryNoteController extends Controller
      * ปิดงาน
      * POST /api/v1/delivery-notes/{id}/mark-completed
      */
-    public function markCompleted(Request $request, $id): JsonResponse
+    public function markCompleted(MarkDeliveryCompletedRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'notes' => 'nullable|string|max:1000'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
             $completedBy = AccountingHelper::getCurrentUserId();
-            $deliveryNote = $this->deliveryNoteService->markAsCompleted($id, $request->all(), $completedBy);
+            $deliveryNote = $this->deliveryNoteService->markAsCompleted($id, $request->validated(), $completedBy);
 
             return $this->successResponse($deliveryNote, 'Delivery marked as completed');
 
@@ -414,19 +282,11 @@ class DeliveryNoteController extends Controller
      * รายงานปัญหา
      * POST /api/v1/delivery-notes/{id}/mark-failed
      */
-    public function markFailed(Request $request, $id): JsonResponse
+    public function markFailed(MarkDeliveryFailedRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'reason' => 'required|string|max:1000'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
             $reportedBy = AccountingHelper::getCurrentUserId();
-            $deliveryNote = $this->deliveryNoteService->markAsFailed($id, $request->all(), $reportedBy);
+            $deliveryNote = $this->deliveryNoteService->markAsFailed($id, $request->validated(), $reportedBy);
 
             return $this->successResponse($deliveryNote, 'Delivery marked as failed');
         } catch (\Exception $e) {
@@ -438,24 +298,14 @@ class DeliveryNoteController extends Controller
      * อัปโหลดหลักฐานการจัดส่ง
      * POST /api/v1/delivery-notes/{id}/upload-evidence
      */
-    public function uploadEvidence(Request $request, $id): JsonResponse
+    public function uploadEvidence(UploadDeliveryEvidenceRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'files' => 'required|array|min:1',
-                'files.*' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB max
-                'description' => 'nullable|string|max:500'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
             $uploadedBy = AccountingHelper::getCurrentUserId();
             $result = $this->deliveryNoteService->uploadEvidence(
                 $id,
                 $request->file('files'),
-                $request->description,
+                $request->input('description'),
                 $uploadedBy
             );
 
@@ -474,6 +324,7 @@ class DeliveryNoteController extends Controller
         try {
             $options = $request->input('options', []);
             $pdfData = $this->deliveryNoteService->generatePdf($id, $options);
+
             return $this->successResponse($pdfData, 'PDF generated successfully');
         } catch (\Exception $e) {
             return $this->serverErrorResponse('DeliveryNoteController::generatePdf', $e);
@@ -490,6 +341,7 @@ class DeliveryNoteController extends Controller
             $headerTypes = $request->input('headerTypes', ['ต้นฉบับ']);
             $options = $request->input('options', []);
             $result = $this->deliveryNoteService->generatePdfBundle($id, $headerTypes, $options);
+
             return $this->successResponse($result, 'PDF bundle generated successfully');
         } catch (\Exception $e) {
             return $this->serverErrorResponse('DeliveryNoteController::generatePdfBundle', $e);
@@ -522,6 +374,7 @@ class DeliveryNoteController extends Controller
     {
         try {
             $timeline = $this->deliveryNoteService->getDeliveryTimeline($id);
+
             return $this->successResponse($timeline, 'Delivery timeline retrieved successfully');
         } catch (\Exception $e) {
             return $this->serverErrorResponse('DeliveryNoteController::getTimeline', $e);
@@ -536,6 +389,7 @@ class DeliveryNoteController extends Controller
     {
         try {
             $companies = $this->deliveryNoteService->getCourierCompanies();
+
             return $this->successResponse($companies, 'Courier companies retrieved successfully');
         } catch (\Exception $e) {
             return $this->serverErrorResponse('DeliveryNoteController::getCourierCompanies', $e);
@@ -550,6 +404,7 @@ class DeliveryNoteController extends Controller
     {
         try {
             $methods = $this->deliveryNoteService->getDeliveryMethods();
+
             return $this->successResponse($methods, 'Delivery methods retrieved successfully');
         } catch (\Exception $e) {
             return $this->serverErrorResponse('DeliveryNoteController::getDeliveryMethods', $e);
@@ -569,43 +424,43 @@ class DeliveryNoteController extends Controller
                     'label' => 'กำลังเตรียม',
                     'color' => '#6c757d',
                     'icon' => '📦',
-                    'description' => 'กำลังเตรียมสินค้าสำหรับจัดส่ง'
+                    'description' => 'กำลังเตรียมสินค้าสำหรับจัดส่ง',
                 ],
                 [
                     'value' => 'shipping',
                     'label' => 'กำลังจัดส่ง',
                     'color' => '#007bff',
                     'icon' => '🚚',
-                    'description' => 'สินค้าออกจากคลังแล้ว'
+                    'description' => 'สินค้าออกจากคลังแล้ว',
                 ],
                 [
                     'value' => 'in_transit',
                     'label' => 'อยู่ระหว่างขนส่ง',
                     'color' => '#ffc107',
                     'icon' => '📍',
-                    'description' => 'สินค้าอยู่ระหว่างขนส่ง'
+                    'description' => 'สินค้าอยู่ระหว่างขนส่ง',
                 ],
                 [
                     'value' => 'delivered',
                     'label' => 'ส่งแล้ว',
                     'color' => '#28a745',
                     'icon' => '✅',
-                    'description' => 'ส่งถึงผู้รับเรียบร้อย'
+                    'description' => 'ส่งถึงผู้รับเรียบร้อย',
                 ],
                 [
                     'value' => 'completed',
                     'label' => 'เสร็จสิ้น',
                     'color' => '#17a2b8',
                     'icon' => '🎉',
-                    'description' => 'ปิดงานเรียบร้อย'
+                    'description' => 'ปิดงานเรียบร้อย',
                 ],
                 [
                     'value' => 'failed',
                     'label' => 'ไม่สำเร็จ',
                     'color' => '#dc3545',
                     'icon' => '❌',
-                    'description' => 'จัดส่งไม่สำเร็จ'
-                ]
+                    'description' => 'จัดส่งไม่สำเร็จ',
+                ],
             ];
 
             return $this->successResponse($statuses, 'Delivery statuses retrieved successfully');

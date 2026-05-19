@@ -10,7 +10,9 @@ import {
 } from "@mui/material";
 import React from "react";
 
+import { showError } from "../../utils/accountingToast";
 import { SecondaryButton, tokens } from "../styles/quotationFormStyles";
+import { ALLOWED_IMAGE_MIMES, validateFiles } from "../utils/fileValidation";
 
 /**
  * ImageUploadGrid
@@ -63,9 +65,19 @@ const ImageUploadGrid = ({
   const handleChange = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length || !onUpload) return;
+
+    const { valid, validFiles, errors } = validateFiles(files, {
+      allowedMimes: ALLOWED_IMAGE_MIMES,
+    });
+    if (!valid) {
+      errors.forEach((msg) => showError(msg));
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (!validFiles.length) return;
+    }
+
     setIsUploading(true);
     try {
-      await onUpload(files);
+      await onUpload(validFiles);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

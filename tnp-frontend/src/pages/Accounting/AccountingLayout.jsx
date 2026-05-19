@@ -1,6 +1,5 @@
 import {
   Assignment as AssignmentIcon,
-  LocalShipping as DeliveryIcon,
   AccountBalance as InvoiceIcon,
   GetApp as ImportIcon,
   BarChart as ReportIcon,
@@ -62,12 +61,12 @@ const splitDocItems = [
 ];
 
 const tailItems = [
-  {
-    id: "delivery",
-    title: "การจัดส่ง",
-    icon: DeliveryIcon,
-    path: "/accounting/delivery-notes",
-  },
+  // {
+  //   id: "delivery",
+  //   title: "การจัดส่ง",
+  //   icon: DeliveryIcon,
+  //   path: "/accounting/delivery-notes",
+  // },
   {
     id: "report",
     title: "รายงาน",

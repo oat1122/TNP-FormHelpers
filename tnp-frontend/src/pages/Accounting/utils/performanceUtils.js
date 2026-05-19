@@ -192,7 +192,9 @@ export const storage = {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : defaultValue;
     } catch (error) {
-      console.warn(`Error reading from localStorage:`, error);
+      if (import.meta.env.DEV) {
+        console.warn(`Error reading from localStorage:`, error);
+      }
       return defaultValue;
     }
   },
@@ -202,7 +204,9 @@ export const storage = {
       localStorage.setItem(key, JSON.stringify(value));
       return true;
     } catch (error) {
-      console.warn(`Error writing to localStorage:`, error);
+      if (import.meta.env.DEV) {
+        console.warn(`Error writing to localStorage:`, error);
+      }
       return false;
     }
   },
@@ -212,7 +216,9 @@ export const storage = {
       localStorage.removeItem(key);
       return true;
     } catch (error) {
-      console.warn(`Error removing from localStorage:`, error);
+      if (import.meta.env.DEV) {
+        console.warn(`Error removing from localStorage:`, error);
+      }
       return false;
     }
   },
@@ -222,7 +228,9 @@ export const storage = {
       localStorage.clear();
       return true;
     } catch (error) {
-      console.warn(`Error clearing localStorage:`, error);
+      if (import.meta.env.DEV) {
+        console.warn(`Error clearing localStorage:`, error);
+      }
       return false;
     }
   },
@@ -309,7 +317,9 @@ export const performanceMonitor = {
  * Error handling utility
  */
 export const handleError = (error, context = "Unknown") => {
-  console.error(`[Error in ${context}]:`, error);
+  if (import.meta.env.DEV) {
+    console.error(`[Error in ${context}]:`, error);
+  }
 
   // Send to error reporting service in production
   if (import.meta.env.PROD) {

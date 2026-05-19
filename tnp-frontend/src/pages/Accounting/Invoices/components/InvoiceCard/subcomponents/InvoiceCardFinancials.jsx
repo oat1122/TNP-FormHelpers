@@ -3,9 +3,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import { Box, Button, Collapse, Stack, Typography } from "@mui/material";
 
-import { formatTHB } from "../../utils/invoiceFormatters";
 import DepositCard from "../../subcomponents/DepositCard";
 import FinancialSummaryCard from "../../subcomponents/FinancialSummaryCard";
+import { formatTHB } from "../../utils/invoiceFormatters";
 
 const InvoiceCardFinancials = ({
   invoice,

@@ -168,7 +168,10 @@ const CalculationSection = ({
                     subtotalAmount={calculation.effectiveSubtotal}
                     onToggleVat={(en) => handleFieldChange("has_vat", en)}
                     onVatPercentageChange={(p) =>
-                      handleFieldChange("vat_percentage", Math.max(0, Math.min(100, Number(p) || 0)))
+                      handleFieldChange(
+                        "vat_percentage",
+                        Math.max(0, Math.min(100, Number(p) || 0))
+                      )
                     }
                   />
                 </Grid>

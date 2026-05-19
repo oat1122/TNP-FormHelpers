@@ -52,7 +52,9 @@ const QuotationSelectionDialog = ({
     try {
       await generatePDF(id).unwrap();
     } catch (e) {
-      console.error("Generate PDF failed", e);
+      if (import.meta.env.DEV) {
+        console.error("Generate PDF failed", e);
+      }
     }
   };
 

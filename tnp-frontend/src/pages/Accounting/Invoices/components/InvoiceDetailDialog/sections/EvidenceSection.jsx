@@ -11,6 +11,7 @@ import {
   SecondaryButton,
   tokens,
 } from "../../../../PricingIntegration/components/styles/quotationFormStyles";
+import { ALLOWED_EVIDENCE_MIMES, validateFiles } from "../../../../shared/utils/fileValidation";
 import {
   dismissToast,
   showError,
@@ -186,12 +187,22 @@ const EvidenceSection = ({ invoice, currentUserRole, readOnly = false, onUploade
   const handleUpload = (mode) => async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
+
+    const { valid, validFiles, errors } = validateFiles(files, {
+      allowedMimes: ALLOWED_EVIDENCE_MIMES,
+    });
+    if (!valid) {
+      errors.forEach((msg) => showError(msg));
+      e.target.value = "";
+      if (!validFiles.length) return;
+    }
+
     setActiveMode(mode);
     const loadingId = showLoading(
       `กำลังอัปโหลดหลักฐาน (${mode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"})…`
     );
     try {
-      const res = await uploadEvidence({ id: invoiceId, files, mode }).unwrap();
+      const res = await uploadEvidence({ id: invoiceId, files: validFiles, mode }).unwrap();
       const updated = normalizeEvidence(res?.data?.evidence_files || res?.evidence_files);
       setLocalEvidence(updated);
       dismissToast(loadingId);

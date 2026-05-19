@@ -1,18 +1,14 @@
-import { Alert, Box, Container, Grid, Stack } from "@mui/material";
+import { Alert, Box, CircularProgress, Container, Grid, Stack } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { th } from "date-fns/locale";
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 
 import {
-  CompanyManagerDialog,
   DocumentTypeSelector,
-  LinkedPricingDialog,
   QuotationCard,
   QuotationControlsBar,
-  QuotationDuplicateDialog,
-  QuotationStandaloneCreateDialog,
   QuotationTableView,
 } from "./components";
 import { useLazyGetQuotationRelatedInvoicesQuery } from "../../../features/Accounting/accountingApi";
@@ -32,6 +28,15 @@ import { useCurrentUser } from "../shared/hooks/useCurrentUser";
 import accountingTheme from "../theme/accountingTheme";
 import { useQuotationsPage } from "./hooks/useQuotationsPage";
 import { useInvoicesPage } from "../Invoices/hooks/useInvoicesPage";
+
+// 🔄 Lazy-load heavy dialogs ที่ render เฉพาะตอน user click
+// (rule: tnp-frontend/.claude/rules/performance.md — "Component หนัก → lazy()")
+const CompanyManagerDialog = lazy(() => import("./components/CompanyManagerDialog"));
+const LinkedPricingDialog = lazy(() => import("./components/LinkedPricingDialog"));
+const QuotationDuplicateDialog = lazy(() => import("./components/QuotationDuplicateDialog"));
+const QuotationStandaloneCreateDialog = lazy(
+  () => import("./components/QuotationStandaloneCreateDialog")
+);
 
 const UNIFIED_ROLES = ["admin", "account", "sale"];
 const EDIT_ROLES = ["admin", "account", "sale"];
@@ -238,54 +243,65 @@ const Quotations = () => {
 
           {effectiveMode === "quotation" && (
             <>
-              <LinkedPricingDialog
-                open={quotationsPage.linkedOpen}
-                onClose={() => quotationsPage.setLinkedOpen(false)}
-                quotationId={quotationsPage.selectedQuotation?.id}
-              />
-              {quotationsPage.viewOpen && quotationsPage.viewData && (
-                <QuotationDuplicateDialog
-                  mode="view"
-                  open={quotationsPage.viewOpen}
-                  onClose={quotationsPage.handleCloseViewDialog}
-                  initialData={quotationsPage.viewData}
-                  quotationId={quotationsPage.viewQuotationId}
-                />
-              )}
-              <CompanyManagerDialog
-                open={quotationsPage.companyDialogOpen}
-                onClose={() => quotationsPage.setCompanyDialogOpen(false)}
-              />
+              {/* lazy dialogs — render เฉพาะตอน user click; Suspense จะ defer import จนถึงครั้งแรกที่เปิด */}
+              <Suspense fallback={<CircularProgress />}>
+                {quotationsPage.linkedOpen && (
+                  <LinkedPricingDialog
+                    open={quotationsPage.linkedOpen}
+                    onClose={() => quotationsPage.setLinkedOpen(false)}
+                    quotationId={quotationsPage.selectedQuotation?.id}
+                  />
+                )}
+                {quotationsPage.viewOpen && quotationsPage.viewData && (
+                  <QuotationDuplicateDialog
+                    mode="view"
+                    open={quotationsPage.viewOpen}
+                    onClose={quotationsPage.handleCloseViewDialog}
+                    initialData={quotationsPage.viewData}
+                    quotationId={quotationsPage.viewQuotationId}
+                  />
+                )}
+                {quotationsPage.companyDialogOpen && (
+                  <CompanyManagerDialog
+                    open={quotationsPage.companyDialogOpen}
+                    onClose={() => quotationsPage.setCompanyDialogOpen(false)}
+                  />
+                )}
+                {quotationsPage.standaloneCreateOpen && (
+                  <QuotationStandaloneCreateDialog
+                    open={quotationsPage.standaloneCreateOpen}
+                    onClose={() => quotationsPage.setStandaloneCreateOpen(false)}
+                    onSuccess={quotationsPage.handleStandaloneCreateSuccess}
+                    companyId={quotationsPage.companyId}
+                  />
+                )}
+                {quotationsPage.duplicateOpen && quotationsPage.duplicateData && (
+                  <QuotationDuplicateDialog
+                    open={quotationsPage.duplicateOpen}
+                    onClose={quotationsPage.handleCloseDuplicateDialog}
+                    initialData={quotationsPage.duplicateData}
+                    onSaveSuccess={quotationsPage.handleSaveDuplicateSuccess}
+                  />
+                )}
+                {quotationsPage.editOpen && quotationsPage.editData && (
+                  <QuotationDuplicateDialog
+                    mode="edit"
+                    open={quotationsPage.editOpen}
+                    onClose={quotationsPage.handleCloseEditDialog}
+                    initialData={quotationsPage.editData}
+                    quotationId={quotationsPage.editQuotationId}
+                    onSaveSuccess={quotationsPage.handleSaveEditSuccess}
+                    onSignatureUploaded={quotationsPage.handleSignatureUploaded}
+                  />
+                )}
+              </Suspense>
+
+              {/* InvoiceCreateDialog — ไม่ใช่ lazy ที่นี่ (อาจถูก refactor โดย agent อื่น) */}
               <InvoiceCreateDialog
                 open={quotationsPage.createInvoiceOpen}
                 onClose={() => quotationsPage.setCreateInvoiceOpen(false)}
                 quotationId={quotationsPage.selectedQuotation?.id}
               />
-              <QuotationStandaloneCreateDialog
-                open={quotationsPage.standaloneCreateOpen}
-                onClose={() => quotationsPage.setStandaloneCreateOpen(false)}
-                onSuccess={quotationsPage.handleStandaloneCreateSuccess}
-                companyId={quotationsPage.companyId}
-              />
-              {quotationsPage.duplicateOpen && quotationsPage.duplicateData && (
-                <QuotationDuplicateDialog
-                  open={quotationsPage.duplicateOpen}
-                  onClose={quotationsPage.handleCloseDuplicateDialog}
-                  initialData={quotationsPage.duplicateData}
-                  onSaveSuccess={quotationsPage.handleSaveDuplicateSuccess}
-                />
-              )}
-              {quotationsPage.editOpen && quotationsPage.editData && (
-                <QuotationDuplicateDialog
-                  mode="edit"
-                  open={quotationsPage.editOpen}
-                  onClose={quotationsPage.handleCloseEditDialog}
-                  initialData={quotationsPage.editData}
-                  quotationId={quotationsPage.editQuotationId}
-                  onSaveSuccess={quotationsPage.handleSaveEditSuccess}
-                  onSignatureUploaded={quotationsPage.handleSignatureUploaded}
-                />
-              )}
 
               <FloatingActionButton onRefresh={quotationsPage.handleRefresh} />
             </>

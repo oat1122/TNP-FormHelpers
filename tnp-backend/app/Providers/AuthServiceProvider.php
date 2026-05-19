@@ -28,6 +28,7 @@ class AuthServiceProvider extends ServiceProvider
         $this->defineQuotationGates();
         $this->defineInvoiceGates();
         $this->defineReceiptGates();
+        $this->defineDeliveryNoteGates();
     }
 
     private function defineQuotationGates(): void
@@ -77,5 +78,23 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('receipt.reject', fn ($u) => in_array($u->role, $managerOrAccount, true));
         Gate::define('receipt.uploadEvidence', fn ($u) => in_array($u->role, $managerOrAccount, true));
         Gate::define('receipt.calculateVat', fn ($u) => in_array($u->role, [UserRole::MANAGER, UserRole::ACCOUNT, UserRole::SALE], true));
+    }
+
+    private function defineDeliveryNoteGates(): void
+    {
+        // Production / fulfillment roles handle shipping; manager+account own admin lifecycle.
+        $shippingTeam = [UserRole::MANAGER, UserRole::ACCOUNT, UserRole::PRODUCTION];
+        $managerOrAccount = [UserRole::MANAGER, UserRole::ACCOUNT];
+
+        Gate::define('delivery-note.create', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('delivery-note.update', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('delivery-note.destroy', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('delivery-note.createFromReceipt', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('delivery-note.startShipping', fn ($u) => in_array($u->role, $shippingTeam, true));
+        Gate::define('delivery-note.updateTracking', fn ($u) => in_array($u->role, $shippingTeam, true));
+        Gate::define('delivery-note.markDelivered', fn ($u) => in_array($u->role, $shippingTeam, true));
+        Gate::define('delivery-note.markCompleted', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('delivery-note.markFailed', fn ($u) => in_array($u->role, $shippingTeam, true));
+        Gate::define('delivery-note.uploadEvidence', fn ($u) => in_array($u->role, $shippingTeam, true));
     }
 }

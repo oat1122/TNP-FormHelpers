@@ -2,9 +2,9 @@
 
 namespace App\Services\Accounting\Quotation;
 
-use App\Models\Accounting\Quotation;
 use App\Models\Accounting\DocumentAttachment;
 use App\Models\Accounting\DocumentHistory;
+use App\Models\Accounting\Quotation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -12,11 +12,43 @@ use Illuminate\Support\Facades\Storage;
 class MediaService
 {
     /**
+     * Allowed upload extensions — กัน stored XSS / RCE ผ่าน extension ปลอม
+     *
+     * @var array<string>
+     */
+    private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'xls', 'xlsx', 'csv'];
+
+    /**
+     * Resolve safe upload extension: prefer Laravel's guessed extension (from real MIME),
+     * fallback to client extension, both whitelisted. Returns null if disallowed.
+     */
+    private function resolveSafeExtension(\Illuminate\Http\UploadedFile $file): ?string
+    {
+        $ext = strtolower((string) $file->extension());
+        if ($ext !== '' && in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
+            return $ext;
+        }
+
+        $clientExt = strtolower((string) $file->getClientOriginalExtension());
+        if (in_array($clientExt, self::ALLOWED_EXTENSIONS, true)) {
+            return $clientExt;
+        }
+
+        Log::warning('Quotation\\MediaService: rejected upload — disallowed extension', [
+            'client_ext' => $clientExt,
+            'mime' => $file->getMimeType(),
+        ]);
+
+        return null;
+    }
+
+    /**
      * อัปโหลดหลักฐานการส่ง
-     * @param mixed $quotationId
-     * @param mixed $files
-     * @param mixed $description
-     * @param mixed $uploadedBy
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $files
+     * @param  mixed  $description
+     * @param  mixed  $uploadedBy
      * @return array<string,mixed>
      */
     public function uploadEvidence($quotationId, $files, $description = null, $uploadedBy = null): array
@@ -29,7 +61,7 @@ class MediaService
             $uploadedFiles = [];
 
             foreach ($files as $file) {
-                $filename = time() . '_' . $file->getClientOriginalName();
+                $filename = time().'_'.$file->getClientOriginalName();
                 $path = $file->storeAs('quotations/evidence', $filename, 'public');
 
                 // สร้าง attachment record
@@ -41,7 +73,7 @@ class MediaService
                     'file_path' => $path,
                     'file_size' => $file->getSize(),
                     'mime_type' => $file->getMimeType(),
-                    'uploaded_by' => $uploadedBy
+                    'uploaded_by' => $uploadedBy,
                 ]);
 
                 $uploadedFiles[] = [
@@ -49,7 +81,7 @@ class MediaService
                     'filename' => $filename,
                     'original_filename' => $file->getClientOriginalName(),
                     'url' => Storage::url($path),
-                    'size' => $file->getSize()
+                    'size' => $file->getSize(),
                 ];
             }
 
@@ -60,7 +92,7 @@ class MediaService
                 $quotationId,
                 'upload_evidence',
                 $uploadedBy,
-                "อัปโหลดหลักฐาน {$fileCount} ไฟล์" . ($description ? ": {$description}" : "")
+                "อัปโหลดหลักฐาน {$fileCount} ไฟล์".($description ? ": {$description}" : '')
             );
 
             DB::commit();
@@ -69,21 +101,22 @@ class MediaService
                 'uploaded_files' => $uploadedFiles,
                 'description' => $description,
                 'uploaded_by' => $uploadedBy,
-                'uploaded_at' => now()->format('Y-m-d\TH:i:s\Z')
+                'uploaded_at' => now()->format('Y-m-d\TH:i:s\Z'),
             ];
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('QuotationService::uploadEvidence error: ' . $e->getMessage());
+            Log::error('QuotationService::uploadEvidence error: '.$e->getMessage());
             throw $e;
         }
     }
 
     /**
      * อัปโหลดรูปหลักฐานการเซ็น (เฉพาะใบเสนอราคาที่ Approved แล้ว)
-     * @param mixed $quotationId
-     * @param mixed $files
-     * @param mixed $uploadedBy
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $files
+     * @param  mixed  $uploadedBy
      * @return array<string,mixed>
      */
     public function uploadSignatures($quotationId, $files, $uploadedBy = null): array
@@ -100,19 +133,23 @@ class MediaService
             $existing = is_array($quotation->signature_images) ? $quotation->signature_images : [];
             $stored = [];
 
-            if (!is_array($files) && !($files instanceof \Traversable)) {
+            if (! is_array($files) && ! ($files instanceof \Traversable)) {
                 throw new \Exception('รูปแบบไฟล์ไม่ถูกต้อง (expected array)');
             }
 
             foreach ($files as $file) {
-                if (!$file) { continue; }
-                $ext = $file->getClientOriginalExtension();
-                $safeExt = strtolower($ext ?: 'jpg');
-                $filename = date('Ymd_His') . '_' . \Illuminate\Support\Str::random(8) . '.' . $safeExt;
+                if (! $file) {
+                    continue;
+                }
+                $safeExt = $this->resolveSafeExtension($file);
+                if ($safeExt === null) {
+                    continue;
+                }
+                $filename = date('Ymd_His').'_'.\Illuminate\Support\Str::random(8).'.'.$safeExt;
                 $path = $file->storeAs('public/images/quotation', $filename); // storage/app/public/images/quotation
                 // Use full absolute URL (handles APP_URL). Storage::url may return relative if APP_URL unset.
                 $relative = str_replace('public/', '', $path); // images/quotation/...
-                $publicUrl = url('storage/' . $relative);
+                $publicUrl = url('storage/'.$relative);
                 $stored[] = [
                     'filename' => $filename,
                     'path' => $path,
@@ -133,7 +170,7 @@ class MediaService
                 $quotationId,
                 'upload_signatures',
                 $uploadedBy,
-                'อัปโหลดรูปหลักฐานการเซ็นจำนวน ' . count($files) . ' ไฟล์'
+                'อัปโหลดรูปหลักฐานการเซ็นจำนวน '.count($files).' ไฟล์'
             );
 
             DB::commit();
@@ -144,16 +181,17 @@ class MediaService
             ];
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('QuotationService::uploadSignatures error: ' . $e->getMessage());
+            Log::error('QuotationService::uploadSignatures error: '.$e->getMessage());
             throw $e;
         }
     }
 
     /**
      * ลบรูปหลักฐานการเซ็น 1 รูปโดยอ้างอิง filename หรือ index
-     * @param mixed $quotationId
-     * @param mixed $identifier
-     * @param mixed $deletedBy
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $identifier
+     * @param  mixed  $deletedBy
      * @return array<string,mixed>
      */
     public function deleteSignatureImage($quotationId, $identifier, $deletedBy = null): array
@@ -171,7 +209,7 @@ class MediaService
             $removed = null;
             // Identifier may be numeric index or filename
             if (is_numeric($identifier)) {
-                $idx = (int)$identifier;
+                $idx = (int) $identifier;
                 if ($idx < 0 || $idx >= count($images)) {
                     throw new \Exception('ตำแหน่งรูปไม่ถูกต้อง');
                 }
@@ -185,14 +223,17 @@ class MediaService
                         break;
                     }
                 }
-                if (!$removed) {
+                if (! $removed) {
                     throw new \Exception('ไม่พบไฟล์ที่ระบุ');
                 }
             }
 
             // Delete actual stored file if still exists
-            if (!empty($removed['path']) && Storage::exists($removed['path'])) {
-                try { Storage::delete($removed['path']); } catch (\Throwable $t) { /* ignore */ }
+            if (! empty($removed['path']) && Storage::exists($removed['path'])) {
+                try {
+                    Storage::delete($removed['path']);
+                } catch (\Throwable $t) { /* ignore */
+                }
             }
 
             $quotation->signature_images = array_values($images);
@@ -203,17 +244,18 @@ class MediaService
                 $quotationId,
                 'delete_signature_image',
                 $deletedBy,
-                'ลบรูปหลักฐานการเซ็น: ' . ($removed['filename'] ?? 'unknown')
+                'ลบรูปหลักฐานการเซ็น: '.($removed['filename'] ?? 'unknown')
             );
 
             DB::commit();
+
             return [
                 'deleted' => $removed,
                 'signature_images' => $quotation->signature_images,
             ];
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('QuotationService::deleteSignatureImage error: ' . $e->getMessage());
+            Log::error('QuotationService::deleteSignatureImage error: '.$e->getMessage());
             throw $e;
         }
     }
@@ -221,9 +263,10 @@ class MediaService
     /**
      * Upload sample images and append to quotation->sample_images
      * Files are stored under storage/app/public/images/quotation-samples
-     * @param mixed $quotationId
-     * @param mixed $files
-     * @param mixed $uploadedBy
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $files
+     * @param  mixed  $uploadedBy
      * @return array<string,mixed>
      */
     public function uploadSampleImages($quotationId, $files, $uploadedBy = null): array
@@ -237,18 +280,22 @@ class MediaService
             $existing = is_array($quotation->sample_images) ? $quotation->sample_images : [];
             $stored = [];
 
-            if (!is_array($files) && !($files instanceof \Traversable)) {
+            if (! is_array($files) && ! ($files instanceof \Traversable)) {
                 throw new \Exception('Invalid files payload (expected array)');
             }
 
             foreach ($files as $file) {
-                if (!$file) { continue; }
-                $ext = $file->getClientOriginalExtension();
-                $safeExt = strtolower($ext ?: 'jpg');
-                $filename = date('Ymd_His') . '_' . \Illuminate\Support\Str::random(8) . '.' . $safeExt;
+                if (! $file) {
+                    continue;
+                }
+                $safeExt = $this->resolveSafeExtension($file);
+                if ($safeExt === null) {
+                    continue;
+                }
+                $filename = date('Ymd_His').'_'.\Illuminate\Support\Str::random(8).'.'.$safeExt;
                 $path = $file->storeAs('public/images/quotation-samples', $filename);
                 $relative = str_replace('public/', '', $path); // images/quotation-samples/...
-                $publicUrl = url('storage/' . $relative);
+                $publicUrl = url('storage/'.$relative);
                 $stored[] = [
                     'filename' => $filename,
                     'original_filename' => $file->getClientOriginalName(),
@@ -269,7 +316,7 @@ class MediaService
                 $quotationId,
                 'upload_sample_images',
                 $uploadedBy,
-                'อัปโหลดรูปภาพตัวอย่างจำนวน ' . count($stored) . ' ไฟล์'
+                'อัปโหลดรูปภาพตัวอย่างจำนวน '.count($stored).' ไฟล์'
             );
 
             DB::commit();
@@ -280,32 +327,37 @@ class MediaService
             ];
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('QuotationService::uploadSampleImages error: ' . $e->getMessage());
+            Log::error('QuotationService::uploadSampleImages error: '.$e->getMessage());
             throw $e;
         }
     }
 
     /**
      * Upload sample images without persisting to any quotation (for create form)
-     * @param mixed $files
-     * @param mixed $uploadedBy
+     *
+     * @param  mixed  $files
+     * @param  mixed  $uploadedBy
      * @return array<string,mixed>
      */
     public function uploadSampleImagesNoBind($files, $uploadedBy = null): array
     {
         try {
             $stored = [];
-            if (!is_array($files) && !($files instanceof \Traversable)) {
+            if (! is_array($files) && ! ($files instanceof \Traversable)) {
                 throw new \Exception('Invalid files payload (expected array)');
             }
             foreach ($files as $file) {
-                if (!$file) { continue; }
-                $ext = $file->getClientOriginalExtension();
-                $safeExt = strtolower($ext ?: 'jpg');
-                $filename = date('Ymd_His') . '_' . \Illuminate\Support\Str::random(8) . '.' . $safeExt;
+                if (! $file) {
+                    continue;
+                }
+                $safeExt = $this->resolveSafeExtension($file);
+                if ($safeExt === null) {
+                    continue;
+                }
+                $filename = date('Ymd_His').'_'.\Illuminate\Support\Str::random(8).'.'.$safeExt;
                 $path = $file->storeAs('public/images/quotation-samples', $filename);
                 $relative = str_replace('public/', '', $path);
-                $publicUrl = url('storage/' . $relative);
+                $publicUrl = url('storage/'.$relative);
                 $stored[] = [
                     'filename' => $filename,
                     'original_filename' => $file->getClientOriginalName(),
@@ -317,12 +369,13 @@ class MediaService
                     'uploaded_by' => $uploadedBy,
                 ];
             }
+
             return [
                 'sample_images' => $stored,
                 'uploaded_count' => count($stored),
             ];
         } catch (\Exception $e) {
-            Log::error('QuotationService::uploadSampleImagesNoBind error: ' . $e->getMessage());
+            Log::error('QuotationService::uploadSampleImagesNoBind error: '.$e->getMessage());
             throw $e;
         }
     }

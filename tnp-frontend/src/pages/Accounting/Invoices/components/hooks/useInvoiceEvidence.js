@@ -6,6 +6,8 @@
 import { useState } from "react";
 
 import { useUploadInvoiceEvidenceMutation } from "../../../../../features/Accounting/accountingApi";
+import { ALLOWED_EVIDENCE_MIMES, validateFiles } from "../../../shared/utils/fileValidation";
+import { showError } from "../../../utils/accountingToast";
 
 // Normalize evidence structure to handle corrupted nested data
 const normalizeEvidenceStructure = (evidenceData) => {
@@ -158,8 +160,20 @@ export const useInvoiceEvidence = (invoice) => {
   const handleUploadEvidence = async (files, mode = "before") => {
     if (!invoice?.id || !files?.length) return;
 
+    const { valid, validFiles, errors } = validateFiles(files, {
+      allowedMimes: ALLOWED_EVIDENCE_MIMES,
+    });
+    if (!valid) {
+      errors.forEach((msg) => showError(msg));
+      if (!validFiles.length) return;
+    }
+
     try {
-      const res = await uploadInvoiceEvidence({ id: invoice.id, files, mode }).unwrap();
+      const res = await uploadInvoiceEvidence({
+        id: invoice.id,
+        files: validFiles,
+        mode,
+      }).unwrap();
       // ถ้า backend ส่ง evidence_files กลับมา ใช้สำหรับอัพเดตเฉพาะ card นี้ทันที
       if (res && res.evidence_files) {
         if (typeof res.evidence_files === "object" && !Array.isArray(res.evidence_files)) {

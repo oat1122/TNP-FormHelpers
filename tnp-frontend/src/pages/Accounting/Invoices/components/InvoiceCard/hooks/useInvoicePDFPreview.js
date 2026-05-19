@@ -35,7 +35,9 @@ export const useInvoicePDFPreview = (invoice) => {
       const url = `${getApiBaseUrl()}/invoices/${invoice.id}/pdf/preview?mode=${mode || "before"}`;
       const finalToken = getAuthToken();
       if (!finalToken) {
-        console.error("No authentication token");
+        if (import.meta.env.DEV) {
+          console.error("No authentication token");
+        }
         setOpen(false);
         return;
       }
@@ -57,7 +59,9 @@ export const useInvoicePDFPreview = (invoice) => {
         }
         setPdfUrl(URL.createObjectURL(blob));
       } catch (e) {
-        console.error("PDF preview failed", e);
+        if (import.meta.env.DEV) {
+          console.error("PDF preview failed", e);
+        }
         setOpen(false);
         setPdfUrl("");
       }

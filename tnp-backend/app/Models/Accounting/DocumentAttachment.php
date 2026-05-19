@@ -2,13 +2,13 @@
 
 namespace App\Models\Accounting;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\User;
 
 /**
  * Class DocumentAttachment
- * 
+ *
  * @property string $id
  * @property string $document_type
  * @property string $document_id
@@ -23,8 +23,11 @@ use App\Models\User;
 class DocumentAttachment extends Model
 {
     protected $table = 'document_attachments';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
+
     public $timestamps = false; // Only using created_at
 
     protected $fillable = [
@@ -41,26 +44,26 @@ class DocumentAttachment extends Model
         'cache_version',
         'cache_key',
         'uploaded_by',
-        'deleted_at'
+        'deleted_at',
     ];
 
     protected $casts = [
         'file_size' => 'integer',
         'created_at' => 'datetime',
         'cache_expires_at' => 'datetime',
-        'deleted_at' => 'datetime'
+        'deleted_at' => 'datetime',
     ];
 
     // Generate UUID when creating
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) \Illuminate\Support\Str::uuid();
             }
-            
+
             if (empty($model->created_at)) {
                 $model->created_at = now();
             }
@@ -115,7 +118,7 @@ class DocumentAttachment extends Model
      */
     public function scopeFileType($query, $mimeType)
     {
-        return $query->where('mime_type', 'like', $mimeType . '%');
+        return $query->where('mime_type', 'like', $mimeType.'%');
     }
 
     /**
@@ -123,10 +126,10 @@ class DocumentAttachment extends Model
      */
     public function getFileUrlAttribute()
     {
-        if (file_exists(storage_path('app/' . $this->file_path))) {
-            return url('storage/' . str_replace('public/', '', $this->file_path));
+        if (file_exists(storage_path('app/'.$this->file_path))) {
+            return url('storage/'.str_replace('public/', '', $this->file_path));
         }
-        
+
         return null;
     }
 
@@ -135,7 +138,7 @@ class DocumentAttachment extends Model
      */
     public function getFileSizeHumanAttribute()
     {
-        if (!$this->file_size) {
+        if (! $this->file_size) {
             return 'Unknown';
         }
 
@@ -146,7 +149,7 @@ class DocumentAttachment extends Model
             $bytes /= 1024;
         }
 
-        return round($bytes, 2) . ' ' . $units[$i];
+        return round($bytes, 2).' '.$units[$i];
     }
 
     /**
@@ -185,7 +188,7 @@ class DocumentAttachment extends Model
             'application/vnd.ms-excel',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'text/plain',
-            'text/csv'
+            'text/csv',
         ];
 
         return in_array($this->mime_type, $documentMimes);
@@ -217,33 +220,9 @@ class DocumentAttachment extends Model
     protected static function booted()
     {
         static::deleting(function ($attachment) {
-            if (file_exists(storage_path('app/' . $attachment->file_path))) {
-                unlink(storage_path('app/' . $attachment->file_path));
+            if (file_exists(storage_path('app/'.$attachment->file_path))) {
+                unlink(storage_path('app/'.$attachment->file_path));
             }
         });
-    }
-
-    /**
-     * Create attachment record for uploaded file
-     */
-    public static function createFromUpload($documentType, $documentId, $uploadedFile, $uploadedBy = null)
-    {
-        // Generate unique filename
-        $extension = $uploadedFile->getClientOriginalExtension();
-        $filename = time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $extension;
-        
-        // Store file
-        $path = $uploadedFile->storeAs('public/attachments/' . $documentType, $filename);
-        
-        return static::create([
-            'document_type' => $documentType,
-            'document_id' => $documentId,
-            'filename' => $filename,
-            'original_filename' => $uploadedFile->getClientOriginalName(),
-            'file_path' => $path,
-            'file_size' => $uploadedFile->getSize(),
-            'mime_type' => $uploadedFile->getMimeType(),
-            'uploaded_by' => $uploadedBy ?? auth()->user()->user_uuid ?? null
-        ]);
     }
 }

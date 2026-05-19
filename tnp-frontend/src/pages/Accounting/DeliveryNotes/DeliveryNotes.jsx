@@ -116,7 +116,9 @@ const DeliveryNotes = () => {
         );
       }
     } catch (err) {
-      console.error("Download PDF error:", err);
+      if (import.meta.env.DEV) {
+        console.error("Download PDF error:", err);
+      }
       showError(err?.data?.message || "ไม่สามารถดาวน์โหลด PDF ได้");
     }
   };

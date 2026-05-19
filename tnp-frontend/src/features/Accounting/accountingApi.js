@@ -39,9 +39,10 @@ const normalizeReceiptPayload = (data = {}) => {
 export const accountingApi = createApi({
   reducerPath: "accountingApi",
   baseQuery,
-  refetchOnFocus: false, // 🔄 ปิด auto refetch เพื่อใช้ cache มากขึ้น
+  refetchOnFocus: false, // ปิด auto refetch เพื่อใช้ cache มากขึ้น
   refetchOnReconnect: true,
-  keepUnusedDataFor: 1800, // 🔄 ตั้งค่า global cache 30 นาที
+  // ไม่ใช้ global keepUnusedDataFor — ค่า default 60s ของ RTK Query เพียงพอ
+  // endpoint ใดต้องการ cache นานกว่านี้ override ที่ endpoint นั้นเอง (60–3600s)
   tagTypes: [
     "PricingRequest",
     "PricingRequestNote",
@@ -63,7 +64,7 @@ export const accountingApi = createApi({
           (result?.data ?? result ?? []).map?.((c) => ({ type: "Company", id: c.id })) || [];
         return [{ type: "Company", id: "LIST" }, ...items];
       },
-      keepUnusedDataFor: 60,
+      keepUnusedDataFor: 300, // lookup data — เปลี่ยนนานๆ ครั้ง
     }),
     getCompany: builder.query({
       query: (id) => `/companies/${id}`,
@@ -550,14 +551,17 @@ export const accountingApi = createApi({
     getQuotationsAwaitingInvoice: builder.query({
       query: (params = {}) => ({ url: "/invoices/quotations-awaiting", params }),
       providesTags: ["Quotation"],
+      keepUnusedDataFor: 60,
     }),
     getInvoices: builder.query({
       query: (params = {}) => ({ url: "/invoices", params }),
       providesTags: ["Invoice"],
+      keepUnusedDataFor: 60,
     }),
     getInvoice: builder.query({
       query: (id) => `/invoices/${id}`,
       providesTags: (r, e, id) => [{ type: "Invoice", id }],
+      keepUnusedDataFor: 60,
     }),
     createInvoiceFromQuotation: builder.mutation({
       query: ({ quotationId, ...additionalData }) => ({
@@ -653,10 +657,12 @@ export const accountingApi = createApi({
     getReceipts: builder.query({
       query: (params = {}) => ({ url: "/receipts", params }),
       providesTags: ["Receipt"],
+      keepUnusedDataFor: 60,
     }),
     getReceipt: builder.query({
       query: (id) => `/receipts/${id}`,
       providesTags: (r, e, id) => [{ type: "Receipt", id }],
+      keepUnusedDataFor: 60,
     }),
     createReceiptFromPayment: builder.mutation({
       query: ({ invoiceId, ...paymentData }) => ({
@@ -719,18 +725,22 @@ export const accountingApi = createApi({
     getDeliveryNotes: builder.query({
       query: (params = {}) => ({ url: "/delivery-notes", params }),
       providesTags: ["DeliveryNote"],
+      keepUnusedDataFor: 60,
     }),
     getDeliveryNote: builder.query({
       query: (id) => `/delivery-notes/${id}`,
       providesTags: (r, e, id) => [{ type: "DeliveryNote", id }],
+      keepUnusedDataFor: 60,
     }),
     getDeliveryNoteInvoiceItems: builder.query({
       query: (params = {}) => ({ url: "/delivery-notes/invoice-items", params }),
       providesTags: ["DeliveryNote"],
+      keepUnusedDataFor: 60,
     }),
     getDeliveryNoteInvoices: builder.query({
       query: (params = {}) => ({ url: "/delivery-notes/invoices", params }),
       providesTags: ["DeliveryNote"],
+      keepUnusedDataFor: 60,
     }),
     createDeliveryNote: builder.mutation({
       query: (payload) => ({ url: "/delivery-notes", method: "POST", body: payload }),
@@ -807,9 +817,16 @@ export const accountingApi = createApi({
     getDeliveryTimeline: builder.query({
       query: (id) => `/delivery-notes/${id}/timeline`,
       providesTags: (r, e, id) => [{ type: "DeliveryNote", id }],
+      keepUnusedDataFor: 60,
     }),
-    getCourierCompanies: builder.query({ query: () => "/delivery-notes/courier-companies" }),
-    getDeliveryMethods: builder.query({ query: () => "/delivery-notes/delivery-methods" }),
+    getCourierCompanies: builder.query({
+      query: () => "/delivery-notes/courier-companies",
+      keepUnusedDataFor: 300, // lookup data — เปลี่ยนนานๆ ครั้ง
+    }),
+    getDeliveryMethods: builder.query({
+      query: () => "/delivery-notes/delivery-methods",
+      keepUnusedDataFor: 300, // lookup data — เปลี่ยนนานๆ ครั้ง
+    }),
     generateDeliveryNotePDF: builder.mutation({
       query: ({ id, options }) => ({
         url: `/delivery-notes/${id}/generate-pdf`,

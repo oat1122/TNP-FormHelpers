@@ -10,6 +10,7 @@ import {
   SecondaryButton,
   tokens,
 } from "../../../../shared/styles/quotationFormStyles";
+import { ALLOWED_IMAGE_MIMES, validateFiles } from "../../../../shared/utils/fileValidation";
 import { showError } from "../../../../utils/accountingToast";
 import { resolveSignatureImageUrl } from "../utils/signatureImageUrl";
 
@@ -24,6 +25,23 @@ const SampleImagesSection = ({
   canUploadSampleImages,
   canUploadSignatures,
 }) => {
+  const handleSignatureInputChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const { valid, errors } = validateFiles(files, {
+      allowedMimes: ALLOWED_IMAGE_MIMES,
+    });
+    if (!valid) {
+      errors.forEach((msg) => showError(msg));
+      e.target.value = "";
+      // Abort entirely if any file is invalid — user can re-select clean files.
+      return;
+    }
+
+    imageManager.handleUploadSignatures(e);
+  };
+
   const handleToggleSample = (img) => {
     if (!canUploadSampleImages) return;
     const value = img.filename || "";
@@ -213,7 +231,7 @@ const SampleImagesSection = ({
                       accept="image/*"
                       multiple
                       hidden
-                      onChange={imageManager.handleUploadSignatures}
+                      onChange={handleSignatureInputChange}
                     />
                   </SecondaryButton>
                   <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>

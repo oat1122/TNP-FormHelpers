@@ -78,7 +78,9 @@ const ReceiptSelectionDialog = ({ open, onClose, onCreated }) => {
       onClose?.();
       onCreated?.(newId);
     } catch (e) {
-      console.error("Create delivery note from receipt failed", e);
+      if (import.meta.env.DEV) {
+        console.error("Create delivery note from receipt failed", e);
+      }
     }
   };
 

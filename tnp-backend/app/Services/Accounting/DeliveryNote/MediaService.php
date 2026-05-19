@@ -6,6 +6,7 @@ use App\Models\Accounting\DeliveryNote;
 use App\Models\Accounting\DocumentAttachment;
 use App\Models\Accounting\DocumentHistory;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -13,6 +14,14 @@ use Illuminate\Support\Str;
  */
 class MediaService
 {
+    /**
+     * Allowed upload extensions — same shape as Uploadable trait's whitelist.
+     * Pic + PDF + Excel only (no .html / .svg / .phtml that browsers execute).
+     *
+     * @var array<string>
+     */
+    private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'xls', 'xlsx', 'csv'];
+
     /**
      * Persist evidence files for a delivery note + record DocumentAttachment
      * rows + emit a single history entry.
@@ -27,7 +36,24 @@ class MediaService
             $uploadedFiles = [];
 
             foreach ($files as $file) {
-                $filename = time().'_'.Str::random(10).'.'.$file->getClientOriginalExtension();
+                // SECURITY: ใช้ extension จาก real MIME + whitelist
+                //   กัน upload .png ที่จริงเป็น .html → stored XSS
+                $ext = strtolower((string) $file->extension());
+                if ($ext === '' || ! in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
+                    $clientExt = strtolower((string) $file->getClientOriginalExtension());
+                    if (! in_array($clientExt, self::ALLOWED_EXTENSIONS, true)) {
+                        Log::warning('DeliveryNote\\MediaService: rejected upload — disallowed extension', [
+                            'delivery_note_id' => $deliveryNoteId,
+                            'client_ext' => $clientExt,
+                            'mime' => $file->getMimeType(),
+                        ]);
+
+                        continue;
+                    }
+                    $ext = $clientExt;
+                }
+
+                $filename = time().'_'.Str::random(10).'.'.$ext;
                 $path = $file->storeAs('delivery_notes/evidence', $filename, 'public');
 
                 $attachment = new DocumentAttachment;

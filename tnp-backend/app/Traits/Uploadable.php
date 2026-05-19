@@ -3,35 +3,60 @@
 namespace App\Traits;
 
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Trait Uploadable
- * 
+ *
  * จัดการการอัปโหลด, ลบ, และสร้าง URL ของไฟล์
  * ใช้ได้กับทุก Model ที่ต้องการจัดการไฟล์
  */
 trait Uploadable
 {
     /**
+     * ชนิดไฟล์ที่อนุญาตให้อัปโหลด — กัน stored XSS / RCE ผ่าน extension ปลอม
+     * ตรง shared rule file-upload.md (Image 5MB / PDF 10MB / Excel 10MB)
+     *
+     * @var array<string>
+     */
+    protected static array $allowedUploadExtensions = [
+        'jpg', 'jpeg', 'png', 'webp', 'pdf',
+        'xls', 'xlsx', 'csv',
+    ];
+
+    /**
      * อัปโหลดไฟล์ไปยัง Storage
-     * 
-     * @param UploadedFile $file ไฟล์ที่ต้องการอัปโหลด
-     * @param string $directory โฟลเดอร์ที่ต้องการเก็บไฟล์
-     * @param string $prefix Prefix สำหรับชื่อไฟล์ (optional)
-     * @param string $disk ชื่อ disk ที่ต้องการใช้ (default: 'public')
-     * @return array ข้อมูลไฟล์ที่อัปโหลด ['path', 'filename', 'original_filename', 'size', 'mime_type', 'url']
+     *
+     * @param  UploadedFile  $file  ไฟล์ที่ต้องการอัปโหลด
+     * @param  string  $directory  โฟลเดอร์ที่ต้องการเก็บไฟล์
+     * @param  string  $prefix  Prefix สำหรับชื่อไฟล์ (optional)
+     * @param  string  $disk  ชื่อ disk ที่ต้องการใช้ (default: 'public')
+     * @return array<string, mixed> ข้อมูลไฟล์ที่อัปโหลด ['path', 'filename', 'original_filename', 'size', 'mime_type', 'url']
+     *
+     * @throws \InvalidArgumentException ถ้า extension ไม่อยู่ใน whitelist
      */
     public function uploadFile(UploadedFile $file, string $directory, string $prefix = '', string $disk = 'public'): array
     {
         try {
-            // สร้างชื่อไฟล์
-            $extension = $file->getClientOriginalExtension();
+            // SECURITY: ใช้ extension ที่ Laravel guess จาก real MIME (ไม่ใช่ client-supplied)
+            //   ถ้า guess ไม่ได้ → fallback ใช้ client extension แต่ whitelist อีกที
+            //   กัน upload .png ที่จริงเป็น .html / .phtml / .svg → stored XSS
+            $extension = strtolower((string) $file->extension());
+            if ($extension === '' || ! in_array($extension, self::$allowedUploadExtensions, true)) {
+                $clientExt = strtolower((string) $file->getClientOriginalExtension());
+                if (! in_array($clientExt, self::$allowedUploadExtensions, true)) {
+                    throw new \InvalidArgumentException(
+                        "Uploadable: ชนิดไฟล์ไม่อนุญาต (ext={$clientExt}, mime={$file->getMimeType()})"
+                    );
+                }
+                $extension = $clientExt;
+            }
+
             $originalName = $file->getClientOriginalName();
-            $filename = $prefix 
-                ? $prefix . '_' . uniqid() . '.' . $extension 
-                : uniqid() . '.' . $extension;
+            $filename = $prefix
+                ? $prefix.'_'.uniqid().'.'.$extension
+                : uniqid().'.'.$extension;
 
             // อัปโหลดไฟล์
             $path = $file->storeAs($directory, $filename, $disk);
@@ -54,18 +79,18 @@ trait Uploadable
             ];
 
         } catch (\Exception $e) {
-            Log::error('Uploadable::uploadFile error: ' . $e->getMessage());
+            Log::error('Uploadable::uploadFile error: '.$e->getMessage());
             throw $e;
         }
     }
 
     /**
      * อัปโหลดหลายไฟล์พร้อมกัน
-     * 
-     * @param array $files Array ของ UploadedFile
-     * @param string $directory โฟลเดอร์ที่ต้องการเก็บไฟล์
-     * @param string $prefix Prefix สำหรับชื่อไฟล์ (optional)
-     * @param string $disk ชื่อ disk ที่ต้องการใช้ (default: 'public')
+     *
+     * @param  array  $files  Array ของ UploadedFile
+     * @param  string  $directory  โฟลเดอร์ที่ต้องการเก็บไฟล์
+     * @param  string  $prefix  Prefix สำหรับชื่อไฟล์ (optional)
+     * @param  string  $disk  ชื่อ disk ที่ต้องการใช้ (default: 'public')
      * @return array Array ของข้อมูลไฟล์ที่อัปโหลด
      */
     public function uploadMultipleFiles(array $files, string $directory, string $prefix = '', string $disk = 'public'): array
@@ -73,14 +98,14 @@ trait Uploadable
         $uploadedFiles = [];
 
         foreach ($files as $file) {
-            if (!$file instanceof UploadedFile) {
+            if (! $file instanceof UploadedFile) {
                 continue;
             }
 
             try {
                 $uploadedFiles[] = $this->uploadFile($file, $directory, $prefix, $disk);
             } catch (\Exception $e) {
-                Log::warning('Uploadable::uploadMultipleFiles - Failed to upload file: ' . $e->getMessage());
+                Log::warning('Uploadable::uploadMultipleFiles - Failed to upload file: '.$e->getMessage());
                 // ดำเนินการต่อกับไฟล์อื่นๆ แม้จะมีไฟล์ที่อัปโหลดไม่สำเร็จ
             }
         }
@@ -90,9 +115,9 @@ trait Uploadable
 
     /**
      * ลบไฟล์จาก Storage
-     * 
-     * @param string $path Path ของไฟล์ที่ต้องการลบ
-     * @param string $disk ชื่อ disk ที่ต้องการใช้ (default: 'public')
+     *
+     * @param  string  $path  Path ของไฟล์ที่ต้องการลบ
+     * @param  string  $disk  ชื่อ disk ที่ต้องการใช้ (default: 'public')
      * @return bool สำเร็จหรือไม่
      */
     public function deleteFile(string $path, string $disk = 'public'): bool
@@ -103,19 +128,21 @@ trait Uploadable
             }
 
             Log::warning("Uploadable::deleteFile - File not found: {$path}");
+
             return false;
 
         } catch (\Exception $e) {
-            Log::error('Uploadable::deleteFile error: ' . $e->getMessage());
+            Log::error('Uploadable::deleteFile error: '.$e->getMessage());
+
             return false;
         }
     }
 
     /**
      * ลบหลายไฟล์พร้อมกัน
-     * 
-     * @param array $paths Array ของ path ที่ต้องการลบ
-     * @param string $disk ชื่อ disk ที่ต้องการใช้ (default: 'public')
+     *
+     * @param  array  $paths  Array ของ path ที่ต้องการลบ
+     * @param  string  $disk  ชื่อ disk ที่ต้องการใช้ (default: 'public')
      * @return array ผลลัพธ์การลบแต่ละไฟล์ ['path' => bool]
      */
     public function deleteMultipleFiles(array $paths, string $disk = 'public'): array
@@ -131,9 +158,9 @@ trait Uploadable
 
     /**
      * สร้าง URL ของไฟล์
-     * 
-     * @param string $path Path ของไฟล์
-     * @param string $disk ชื่อ disk ที่ต้องการใช้ (default: 'public')
+     *
+     * @param  string  $path  Path ของไฟล์
+     * @param  string  $disk  ชื่อ disk ที่ต้องการใช้ (default: 'public')
      * @return string|null URL ของไฟล์ หรือ null ถ้าไฟล์ไม่มีอยู่
      */
     public function getFileUrl(string $path, string $disk = 'public'): ?string
@@ -146,16 +173,17 @@ trait Uploadable
             return null;
 
         } catch (\Exception $e) {
-            Log::error('Uploadable::getFileUrl error: ' . $e->getMessage());
+            Log::error('Uploadable::getFileUrl error: '.$e->getMessage());
+
             return null;
         }
     }
 
     /**
      * ตรวจสอบว่าไฟล์มีอยู่หรือไม่
-     * 
-     * @param string $path Path ของไฟล์
-     * @param string $disk ชื่อ disk ที่ต้องการใช้ (default: 'public')
+     *
+     * @param  string  $path  Path ของไฟล์
+     * @param  string  $disk  ชื่อ disk ที่ต้องการใช้ (default: 'public')
      * @return bool มีไฟล์อยู่หรือไม่
      */
     public function fileExists(string $path, string $disk = 'public'): bool
@@ -163,22 +191,23 @@ trait Uploadable
         try {
             return Storage::disk($disk)->exists($path);
         } catch (\Exception $e) {
-            Log::error('Uploadable::fileExists error: ' . $e->getMessage());
+            Log::error('Uploadable::fileExists error: '.$e->getMessage());
+
             return false;
         }
     }
 
     /**
      * ดึงข้อมูลไฟล์
-     * 
-     * @param string $path Path ของไฟล์
-     * @param string $disk ชื่อ disk ที่ต้องการใช้ (default: 'public')
+     *
+     * @param  string  $path  Path ของไฟล์
+     * @param  string  $disk  ชื่อ disk ที่ต้องการใช้ (default: 'public')
      * @return array|null ข้อมูลไฟล์ ['size', 'mime_type', 'url', 'last_modified']
      */
     public function getFileInfo(string $path, string $disk = 'public'): ?array
     {
         try {
-            if (!Storage::disk($disk)->exists($path)) {
+            if (! Storage::disk($disk)->exists($path)) {
                 return null;
             }
 
@@ -194,55 +223,60 @@ trait Uploadable
             ];
 
         } catch (\Exception $e) {
-            Log::error('Uploadable::getFileInfo error: ' . $e->getMessage());
+            Log::error('Uploadable::getFileInfo error: '.$e->getMessage());
+
             return null;
         }
     }
 
     /**
      * ย้ายไฟล์ไปยังโฟลเดอร์ใหม่
-     * 
-     * @param string $fromPath Path เดิมของไฟล์
-     * @param string $toPath Path ใหม่ของไฟล์
-     * @param string $disk ชื่อ disk ที่ต้องการใช้ (default: 'public')
+     *
+     * @param  string  $fromPath  Path เดิมของไฟล์
+     * @param  string  $toPath  Path ใหม่ของไฟล์
+     * @param  string  $disk  ชื่อ disk ที่ต้องการใช้ (default: 'public')
      * @return bool สำเร็จหรือไม่
      */
     public function moveFile(string $fromPath, string $toPath, string $disk = 'public'): bool
     {
         try {
-            if (!Storage::disk($disk)->exists($fromPath)) {
+            if (! Storage::disk($disk)->exists($fromPath)) {
                 Log::warning("Uploadable::moveFile - Source file not found: {$fromPath}");
+
                 return false;
             }
 
             return Storage::disk($disk)->move($fromPath, $toPath);
 
         } catch (\Exception $e) {
-            Log::error('Uploadable::moveFile error: ' . $e->getMessage());
+            Log::error('Uploadable::moveFile error: '.$e->getMessage());
+
             return false;
         }
     }
 
     /**
      * คัดลอกไฟล์
-     * 
-     * @param string $fromPath Path เดิมของไฟล์
-     * @param string $toPath Path ใหม่ของไฟล์
-     * @param string $disk ชื่อ disk ที่ต้องการใช้ (default: 'public')
+     *
+     * @param  string  $fromPath  Path เดิมของไฟล์
+     * @param  string  $toPath  Path ใหม่ของไฟล์
+     * @param  string  $disk  ชื่อ disk ที่ต้องการใช้ (default: 'public')
      * @return bool สำเร็จหรือไม่
      */
     public function copyFile(string $fromPath, string $toPath, string $disk = 'public'): bool
     {
         try {
-            if (!Storage::disk($disk)->exists($fromPath)) {
+            if (! Storage::disk($disk)->exists($fromPath)) {
                 Log::warning("Uploadable::copyFile - Source file not found: {$fromPath}");
+
                 return false;
             }
 
             return Storage::disk($disk)->copy($fromPath, $toPath);
 
         } catch (\Exception $e) {
-            Log::error('Uploadable::copyFile error: ' . $e->getMessage());
+            Log::error('Uploadable::copyFile error: '.$e->getMessage());
+
             return false;
         }
     }

@@ -131,7 +131,24 @@ class MediaService
                 if (! $file) {
                     continue;
                 }
-                $ext = $file->getClientOriginalExtension();
+
+                // SECURITY: ใช้ extension จาก real MIME (Laravel's ->extension())
+                //   + whitelist กัน upload .png ที่จริงเป็น .html / .phtml / .svg → stored XSS
+                $ext = strtolower((string) $file->extension());
+                if ($ext === '' || ! in_array($ext, self::$allowedUploadExtensions, true)) {
+                    $clientExt = strtolower((string) $file->getClientOriginalExtension());
+                    if (! in_array($clientExt, self::$allowedUploadExtensions, true)) {
+                        Log::warning('MediaService: rejected upload — disallowed extension', [
+                            'invoice_id' => $invoiceId,
+                            'client_ext' => $clientExt,
+                            'mime' => $file->getMimeType(),
+                        ]);
+
+                        continue;
+                    }
+                    $ext = $clientExt;
+                }
+
                 $original = $file->getClientOriginalName();
                 $filename = 'inv_'.$invoiceId.'_'.$mode.'_'.uniqid().'.'.$ext;
 

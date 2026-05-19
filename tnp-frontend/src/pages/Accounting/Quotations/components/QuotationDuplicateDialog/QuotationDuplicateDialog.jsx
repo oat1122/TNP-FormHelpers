@@ -40,8 +40,10 @@ const QuotationDuplicateDialog = ({
   quotationId = null,
 }) => {
   const isEdit = mode === "edit";
+  const isView = mode === "view";
+  const isEditing = !isView;
   const { currentUser } = useCurrentUser();
-  const canEditCustomer = EDIT_ROLES.includes(currentUser?.role);
+  const canEditCustomer = !isView && EDIT_ROLES.includes(currentUser?.role);
 
   // Form state (customer + notes + payment + deposit + discount + vat + withholding)
   const { q, customer, editCustomerOpen, formState, setters } =
@@ -154,6 +156,7 @@ const QuotationDuplicateDialog = ({
             setters={setters}
             financials={financials}
             hideCustomerCard={true}
+            isEditing={isEditing}
           />
         </Grid>
       ),
@@ -164,6 +167,7 @@ const QuotationDuplicateDialog = ({
             formState={formState}
             financials={financials}
             setters={setters}
+            isEditing={isEditing}
           />
         </Grid>
       ),
@@ -175,6 +179,7 @@ const QuotationDuplicateDialog = ({
             sampleImages={Array.isArray(q?.sample_images) ? q.sample_images : []}
             currentUserRole={currentUser?.role}
             onUploaded={onSignatureUploaded}
+            readOnly={isView}
           />
         </Grid>
       ),
@@ -195,6 +200,8 @@ const QuotationDuplicateDialog = ({
       onSignatureUploaded,
       companies,
       loadingCompanies,
+      isEditing,
+      isView,
     ]
   );
 
@@ -222,43 +229,49 @@ const QuotationDuplicateDialog = ({
       />
       {/* Tab bar — placed OUTSIDE DialogContent so it sits flush against
           DialogHeader with no padding gap (per user request "ย้ายให้ติดกัน") */}
-      <EditModeTabs activeTab={activeTab} onChange={setActiveTab} showEvidence={isEdit} />
+      <EditModeTabs activeTab={activeTab} onChange={setActiveTab} showEvidence={isEdit || isView} />
       <DialogContent dividers={false} sx={{ p: 2, bgcolor: tokens.bg }}>
         <Box>
-          <ValidationBanner issues={issues} />
+          {!isView && <ValidationBanner issues={issues} />}
           {panels[activeTab]}
         </Box>
       </DialogContent>
       <DialogActions>
-        {!isEdit && (
-          <SecondaryButton disabled title="สามารถดู PDF ได้หลังจากสร้างใบเสนอราคาแล้ว">
-            (ดู PDF หลังสร้าง)
-          </SecondaryButton>
-        )}
-        <SecondaryButton onClick={onClose} disabled={saveFlow.isSaving}>
-          ยกเลิก
-        </SecondaryButton>
-        {(() => {
-          const savingLabel = isEdit ? "กำลังบันทึก…" : "กำลังสร้าง…";
-          const saveLabel = isEdit ? "บันทึกการเปลี่ยนแปลง" : "สร้างใบเสนอราคา";
-          const buttonText = saveFlow.isSaving ? savingLabel : saveLabel;
-          if (isSaveDisabled && saveDisableReason) {
-            return (
-              <Tooltip title={saveDisableReason} arrow placement="top">
-                <span>
-                  <SecondaryButton onClick={handleSave} disabled>
-                    {buttonText}
-                  </SecondaryButton>
-                </span>
-              </Tooltip>
-            );
-          }
-          return (
-            <SecondaryButton onClick={handleSave} disabled={isSaveDisabled}>
-              {buttonText}
+        {isView ? (
+          <SecondaryButton onClick={onClose}>ปิด</SecondaryButton>
+        ) : (
+          <>
+            {!isEdit && (
+              <SecondaryButton disabled title="สามารถดู PDF ได้หลังจากสร้างใบเสนอราคาแล้ว">
+                (ดู PDF หลังสร้าง)
+              </SecondaryButton>
+            )}
+            <SecondaryButton onClick={onClose} disabled={saveFlow.isSaving}>
+              ยกเลิก
             </SecondaryButton>
-          );
-        })()}
+            {(() => {
+              const savingLabel = isEdit ? "กำลังบันทึก…" : "กำลังสร้าง…";
+              const saveLabel = isEdit ? "บันทึกการเปลี่ยนแปลง" : "สร้างใบเสนอราคา";
+              const buttonText = saveFlow.isSaving ? savingLabel : saveLabel;
+              if (isSaveDisabled && saveDisableReason) {
+                return (
+                  <Tooltip title={saveDisableReason} arrow placement="top">
+                    <span>
+                      <SecondaryButton onClick={handleSave} disabled>
+                        {buttonText}
+                      </SecondaryButton>
+                    </span>
+                  </Tooltip>
+                );
+              }
+              return (
+                <SecondaryButton onClick={handleSave} disabled={isSaveDisabled}>
+                  {buttonText}
+                </SecondaryButton>
+              );
+            })()}
+          </>
+        )}
       </DialogActions>
 
       <CustomerEditDialog

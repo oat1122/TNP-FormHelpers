@@ -23,5 +23,7 @@ interface NotebookRepositoryInterface extends BaseRepositoryInterface
 
     public function getSelfReportActivityItems(array $filters, $user): Collection;
 
+    public function getAllTabStats(array $filters, $user): array;
+
     public function findDuplicateMatches(string $type, string $value, ?int $excludeNotebookId = null): array;
 }

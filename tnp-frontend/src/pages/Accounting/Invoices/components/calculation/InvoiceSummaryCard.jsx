@@ -17,6 +17,8 @@ import {
 import { styled } from "@mui/material/styles";
 import React from "react";
 
+import { sanitizeInt, sanitizeDecimal } from "../../../shared/inputSanitizers";
+
 const tokens = {
   primary: "#900F0F",
   white: "#FFFFFF",
@@ -102,24 +104,6 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
 
   const handleItemChange = (field, value) => {
     onChangeItem?.(index, field, value);
-  };
-
-  // Sanitizer helpers
-  const sanitizeInt = (val) => {
-    if (val == null) return "";
-    let s = String(val);
-    s = s.replace(/[^0-9]/g, "");
-    return s;
-  };
-
-  const sanitizeDecimal = (val) => {
-    if (val == null) return "";
-    let s = String(val);
-    s = s.replace(/,/g, ".");
-    s = s.replace(/[^0-9.]/g, "");
-    const parts = s.split(".");
-    if (parts.length <= 1) return s;
-    return `${parts[0]}.${parts.slice(1).join("").replace(/\./g, "")}`;
   };
 
   return (

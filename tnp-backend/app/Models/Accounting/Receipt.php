@@ -130,8 +130,7 @@ class Receipt extends Model
         // Invalidate PDF cache when receipt is updated
         static::updated(function ($receipt) {
             try {
-                $cacheService = app(PdfCacheService::class);
-                $cacheService->invalidate('receipt', $receipt->id);
+                app(PdfCacheService::class)->invalidateAllForDocument($receipt);
                 Log::info('Receipt updated - PDF cache invalidated', ['receipt_id' => $receipt->id]);
             } catch (\Exception $e) {
                 Log::warning('Failed to invalidate PDF cache on receipt update: '.$e->getMessage());
@@ -141,8 +140,7 @@ class Receipt extends Model
         // Invalidate PDF cache when receipt is deleted
         static::deleted(function ($receipt) {
             try {
-                $cacheService = app(PdfCacheService::class);
-                $cacheService->invalidate('receipt', $receipt->id);
+                app(PdfCacheService::class)->invalidateAllForDocument($receipt);
                 Log::info('Receipt deleted - PDF cache invalidated', ['receipt_id' => $receipt->id]);
             } catch (\Exception $e) {
                 Log::warning('Failed to invalidate PDF cache on receipt delete: '.$e->getMessage());

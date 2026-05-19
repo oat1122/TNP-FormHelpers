@@ -179,11 +179,9 @@ class KpiService
         $byUser = $isAdmin ? $this->kpiRepository->getByUserStats(clone $baseQuery) : [];
         $timeSeries = $this->kpiRepository->getTimeSeriesStats(clone $baseQuery, $dateRange);
 
-        $isPastPeriod = $dateRange['end']->lt(Carbon::today()->startOfDay());
-
-        $recallStats = $this->kpiRepository->getRecallStats($sourceFilter, $targetUserId, $dateRange, $isPastPeriod);
+        $recallStats = $this->kpiRepository->getRecallStats($sourceFilter, $targetUserId, $dateRange);
         $recallByUser = ($isAdmin && ! $targetUserId)
-            ? $this->kpiRepository->getRecallStatsByUser($sourceFilter, $dateRange, $isPastPeriod)
+            ? $this->kpiRepository->getRecallStatsByUser($sourceFilter, $dateRange)
             : [];
 
         $byBusinessType = $this->kpiRepository->getByBusinessTypeStats(clone $baseQuery);
@@ -310,9 +308,8 @@ class KpiService
     {
         $dateRange = $this->getDateRange($period, $startDate, $endDate);
         $targetUserId = $this->getTargetUserId($requestedUserId, $user);
-        $isPastPeriod = $dateRange['end']->lt(Carbon::today()->startOfDay());
 
-        $paginator = $this->kpiRepository->getPaginatedRecallDetails($type, $sourceFilter, $targetUserId, $dateRange, $perPage, $isPastPeriod);
+        $paginator = $this->kpiRepository->getPaginatedRecallDetails($type, $sourceFilter, $targetUserId, $dateRange, $perPage);
 
         $customers = $paginator->map(function ($customer) {
             $fullNameParts = array_filter([$customer->cus_firstname, $customer->cus_lastname]);
@@ -376,13 +373,6 @@ class KpiService
             'filename' => $filename,
             'data_source' => 'customers',
         ];
-    }
-
-    public function getRecallHistory(string $month, string $sourceFilter, ?int $requestedUserId, $user)
-    {
-        $targetUserId = $this->getTargetUserId($requestedUserId, $user);
-
-        return $this->kpiRepository->getRecallHistory($month, $sourceFilter, $targetUserId);
     }
 
     protected function shouldUseNotebookLeadSource(?int $targetUserId, $user): bool

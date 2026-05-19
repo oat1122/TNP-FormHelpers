@@ -28,15 +28,16 @@
         @php
           $unit=$g['unit']??'ชิ้น';
           $meta=array_filter([$g['pattern']?:null,$g['fabric']?:null,$g['color']?:null]);
-          $title=($g['name']?:'ไม่ระบุชื่องาน'); 
+          // SECURITY: escape user-controlled item fields before concat to prevent XSS/SSRF via mPDF <img src> fetching
+          $title=e($g['name']?:'ไม่ระบุชื่องาน');
           if($meta){
-            $title.=' <span class="meta-light">'.implode(', ',$meta).'</span>';
+            $title.=' <span class="meta-light">'.e(implode(', ',$meta)).'</span>';
           }
-          $items=[]; 
-          foreach($g['rows'] as $r){ 
-            $qty=(float)($r['quantity']??0); 
-            $price=(float)($r['unit_price']??0); 
-            $amount=$qty*$price; 
+          $items=[];
+          foreach($g['rows'] as $r){
+            $qty=(float)($r['quantity']??0);
+            $price=(float)($r['unit_price']??0);
+            $amount=$qty*$price;
             $items[]=[
               'desc'=> ($r['size']?:'-'),
               'notes' => $r['notes'] ?? null,
@@ -44,13 +45,13 @@
               'unit'=>$unit,
               'price'=>$price,
               'amount'=>$amount
-            ]; 
+            ];
           }
           $groupsData[]=[
             'no'=>$no,
             'title'=>$title,
             'items'=>$items
-          ]; 
+          ];
           $no++;
         @endphp
       @endforeach

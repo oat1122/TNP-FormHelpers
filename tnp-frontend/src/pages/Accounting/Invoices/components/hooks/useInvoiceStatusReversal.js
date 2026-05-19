@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { useRevertInvoiceToDraftMutation } from "../../../../../features/Accounting/accountingApi";
+import { showError } from "../../../utils/accountingToast";
 
 /**
  * Custom hook for managing invoice status reversal functionality
@@ -36,18 +37,15 @@ export const useInvoiceStatusReversal = (invoice) => {
         reason: reason || undefined,
       }).unwrap();
 
-      console.log("✅ Invoice reverted to draft successfully");
-
-      // Reset states on success
       resetDialog();
     } catch (error) {
-      console.error("❌ Failed to revert invoice:", error);
+      if (import.meta.env.DEV) {
+        console.error("Failed to revert invoice:", error);
+      }
 
-      // Show user-friendly error message
       const errorMessage = error?.data?.message || error.message || "ไม่ทราบสาเหตุ";
-      alert(`เกิดข้อผิดพลาดในการย้อนสถานะ: ${errorMessage}`);
+      showError(`เกิดข้อผิดพลาดในการย้อนสถานะ: ${errorMessage}`);
 
-      // Reset states even on error to close dialog
       resetDialog();
     }
   };

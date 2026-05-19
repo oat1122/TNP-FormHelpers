@@ -179,7 +179,9 @@ export const useInvoiceEvidence = (invoice) => {
       // ถ้าไม่มี ให้พึ่ง parent refetch
       return res;
     } catch (e) {
-      console.error("Upload invoice evidence failed", e);
+      if (import.meta.env.DEV) {
+        console.error("Upload invoice evidence failed", e);
+      }
       throw e;
     }
   };

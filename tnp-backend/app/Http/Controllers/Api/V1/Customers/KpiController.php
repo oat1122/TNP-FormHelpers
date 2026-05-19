@@ -316,53 +316,6 @@ class KpiController extends Controller
         ]);
     }
 
-    public function recallHistory(Request $request): JsonResponse
-    {
-        $user = auth()->user();
-
-        if (! $this->canAccessKpi($user)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: Access denied',
-            ], 403);
-        }
-
-        try {
-            if ($request->input('user_id') === 'all') {
-                $request->merge(['user_id' => null]);
-            }
-
-            $request->validate([
-                'month' => 'required|date_format:Y-m',
-                'source_filter' => 'nullable|in:telesales,sales,online,office,all',
-                'user_id' => 'nullable|integer',
-            ]);
-
-            $month = $request->input('month');
-            $sourceFilter = $request->input('source_filter', 'all');
-            $requestedUserId = $request->input('user_id');
-
-            $history = $this->kpiService->getRecallHistory(
-                $month,
-                $sourceFilter,
-                $requestedUserId,
-                $user
-            );
-
-            return response()->json([
-                'success' => true,
-                'data' => $history,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('KPI Recall History Error: '.$e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve recall history',
-            ], 500);
-        }
-    }
-
     protected function canAccessKpi($user): bool
     {
         return AccountingHelper::hasRole(['admin', 'manager', 'telesale', 'sale'])

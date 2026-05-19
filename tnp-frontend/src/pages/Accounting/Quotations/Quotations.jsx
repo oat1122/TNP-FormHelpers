@@ -11,7 +11,6 @@ import {
   LinkedPricingDialog,
   QuotationCard,
   QuotationControlsBar,
-  QuotationDetailDialog,
   QuotationDuplicateDialog,
   QuotationStandaloneCreateDialog,
   QuotationTableView,
@@ -34,8 +33,8 @@ import accountingTheme from "../theme/accountingTheme";
 import { useQuotationsPage } from "./hooks/useQuotationsPage";
 import { useInvoicesPage } from "../Invoices/hooks/useInvoicesPage";
 
-const UNIFIED_ROLES = ["admin", "account"];
-const EDIT_ROLES = ["admin", "account", "sales"];
+const UNIFIED_ROLES = ["admin", "account", "sale"];
+const EDIT_ROLES = ["admin", "account", "sale"];
 
 const Quotations = () => {
   const { mode, setMode } = useDocumentMode();
@@ -54,8 +53,9 @@ const Quotations = () => {
   const pendingQuotationIdRef = useRef(null);
 
   const openDetail = (q) => {
+    if (!q?.id) return;
     quotationsPage.setSelectedQuotation(q);
-    quotationsPage.setDetailOpen(true);
+    quotationsPage.handleView(q.id);
   };
   const openLinked = (q) => {
     quotationsPage.setSelectedQuotation(q);
@@ -189,6 +189,7 @@ const Quotations = () => {
                         onDuplicate={quotationsPage.handleDuplicate}
                         onEdit={quotationsPage.handleEdit}
                         canEditQuotations={canEditQuotations}
+                        currentUserRole={currentUser?.role}
                         onCreateInvoice={openCreateInvoice}
                         onGoToInvoice={handleGoToInvoice}
                         onActionSuccess={quotationsPage.handleCardActionSuccess}
@@ -242,12 +243,15 @@ const Quotations = () => {
                 onClose={() => quotationsPage.setLinkedOpen(false)}
                 quotationId={quotationsPage.selectedQuotation?.id}
               />
-              <QuotationDetailDialog
-                open={quotationsPage.detailOpen}
-                onClose={quotationsPage.handleCloseDetailDialog}
-                quotationId={quotationsPage.selectedQuotation?.id}
-                onSaveSuccess={quotationsPage.handleDetailSaveSuccess}
-              />
+              {quotationsPage.viewOpen && quotationsPage.viewData && (
+                <QuotationDuplicateDialog
+                  mode="view"
+                  open={quotationsPage.viewOpen}
+                  onClose={quotationsPage.handleCloseViewDialog}
+                  initialData={quotationsPage.viewData}
+                  quotationId={quotationsPage.viewQuotationId}
+                />
+              )}
               <CompanyManagerDialog
                 open={quotationsPage.companyDialogOpen}
                 onClose={() => quotationsPage.setCompanyDialogOpen(false)}

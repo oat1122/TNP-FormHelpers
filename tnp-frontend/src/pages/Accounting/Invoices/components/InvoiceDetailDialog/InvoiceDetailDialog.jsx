@@ -6,7 +6,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Grid,
   Typography,
 } from "@mui/material";
 import React, { useState, useRef } from "react";
@@ -31,16 +30,17 @@ import { useInvoiceSideEditState } from "../hooks/useInvoiceSideEditState";
 import { useInvoiceSideValidation } from "../hooks/useInvoiceSideValidation";
 import InvoiceSaveConfirmDialog from "../subcomponents/InvoiceSaveConfirmDialog";
 import UnsavedChangesDialog from "../subcomponents/UnsavedChangesDialog";
-import CalculationSection from "./sections/CalculationSection";
-import CustomerSection from "./sections/CustomerSection";
-import PaymentTermsSection from "./sections/PaymentTermsSection";
 import DialogHeader from "./subcomponents/DialogHeader";
 import EditModeTabs from "./subcomponents/EditModeTabs";
 import { normalizeCustomer, normalizeItems } from "./utils/invoiceDetailNormalizers";
 
 const EDIT_INVOICE_ROLES = ["admin", "account"];
 
-const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
+const InvoiceDetailDialog = ({ open, onClose, invoiceId, initialEditMode = false }) => {
+  // When the dialog opens via the eye button (initialEditMode=false), keep it strictly
+  // view-only — hide the "แก้ไข" toggle in actions + the inline edit toggle in the
+  // calculation section. Users must use the dedicated edit entry point instead.
+  const lockedReadOnly = !initialEditMode;
   const { data, isLoading, error } = useGetInvoiceQuery(invoiceId, { skip: !open || !invoiceId });
   const [updateInvoice, { isLoading: isSaving }] = useUpdateInvoiceMutation();
   const [generateInvoicePDF, { isLoading: isGeneratingPdf }] = useGenerateInvoicePDFMutation();
@@ -268,6 +268,19 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     formData,
   });
 
+  // Auto-sync per-side paid amounts with the live calculation: when qty/price/discount/vat
+  // changes flow through to deposit + final_total, the side amounts follow unless the user
+  // has manually typed in those fields (in which case the hook preserves their value).
+  const { syncDerivedAmounts } = sideEdit;
+  React.useEffect(() => {
+    const depositAmount = Number(calculation?.depositAmount) || 0;
+    const remainingAmount = Math.max(
+      0,
+      (Number(calculation?.finalTotalAmount) || 0) - depositAmount
+    );
+    syncDerivedAmounts({ depositAmount, remainingAmount });
+  }, [calculation?.depositAmount, calculation?.finalTotalAmount, syncDerivedAmounts]);
+
   // Phase 4: build the update payload — pure function for clarity + reuse from confirm flow
   const buildUpdatePayload = () => {
     const updateData = {
@@ -356,12 +369,13 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     return executeSave();
   };
 
-  // Force view mode every time dialog is opened
+  // When dialog opens, sync edit mode from initialEditMode (gated by role).
+  // Lets the parent open the dialog directly in edit mode from a table action.
   React.useEffect(() => {
     if (open) {
-      setIsEditing(false);
+      setIsEditing(Boolean(initialEditMode) && canEditInvoice);
     }
-  }, [open]);
+  }, [open, initialEditMode, canEditInvoice]);
 
   const enterEditMode = () => {
     if (!canEditInvoice) return; // role gate — only admin/account can edit
@@ -577,22 +591,28 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
           >
             {isGeneratingPdf ? "กำลังสร้าง…" : "ดูตัวอย่าง PDF"}
           </SecondaryButton>
-          {canEditInvoice && (
-            <Button
-              variant="contained"
-              onClick={enterEditMode}
-              disabled={validation.isReadOnly}
-              sx={{
-                bgcolor: tokens.primary,
-                "&:hover": { bgcolor: "#7A0E0E" },
-                "&:disabled": { bgcolor: "grey.300" },
-              }}
-              aria-label={
-                validation.isReadOnly ? "ไม่สามารถแก้ไขได้ในสถานะปัจจุบัน" : "แก้ไขใบแจ้งหนี้"
-              }
-            >
-              แก้ไข
+          {lockedReadOnly ? (
+            <Button variant="text" onClick={handleDialogClose} aria-label="ปิดหน้าต่าง">
+              ปิด
             </Button>
+          ) : (
+            canEditInvoice && (
+              <Button
+                variant="contained"
+                onClick={enterEditMode}
+                disabled={validation.isReadOnly}
+                sx={{
+                  bgcolor: tokens.primary,
+                  "&:hover": { bgcolor: "#7A0E0E" },
+                  "&:disabled": { bgcolor: "grey.300" },
+                }}
+                aria-label={
+                  validation.isReadOnly ? "ไม่สามารถแก้ไขได้ในสถานะปัจจุบัน" : "แก้ไขใบแจ้งหนี้"
+                }
+              >
+                แก้ไข
+              </Button>
+            )
           )}
         </>
       )}
@@ -630,112 +650,75 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
                 </Box>
               )}
 
-              {!isEditing ? (
-                /* View mode: single-scroll compact layout (Phase 2) */
-                <Grid container spacing={2}>
-                  <CustomerSection
-                    isEditing={false}
-                    customerDataSource={customerDataSource}
-                    handleCustomerDataSourceChange={handleCustomerDataSourceChange}
-                    customer={customer}
-                    formData={formData}
-                    invoice={invoice}
-                    depositMode={depositMode}
-                    editableItems={editableItems}
-                    handleFieldChange={handleFieldChange}
-                    companies={companies}
-                    loadingCompanies={loadingCompanies}
-                  />
-                  <CalculationSection
-                    isEditing={false}
-                    setIsEditing={setIsEditing}
-                    validation={validation}
-                    items={items}
-                    editableItems={editableItems}
-                    handleAddSizeRow={handleAddSizeRow}
-                    handleChangeSizeRow={handleChangeSizeRow}
-                    handleRemoveSizeRow={handleRemoveSizeRow}
-                    handleDeleteItem={handleDeleteItem}
-                    handleChangeItem={handleChangeItem}
-                    formData={formData}
-                    handleFieldChange={handleFieldChange}
-                    calculation={calculation}
-                    discountTypeState={discountTypeState}
-                    setDiscountTypeState={setDiscountTypeState}
-                  />
-                  <PaymentTermsSection
-                    isEditing={false}
-                    formData={formData}
-                    handleFieldChange={handleFieldChange}
-                    calculation={calculation}
-                    notes={notes}
-                    setNotes={setNotes}
-                    invoice={invoice}
-                    paidBeforeOverride={sideEdit.beforeFormData.paid_amount_before}
-                    paidAfterOverride={sideEdit.afterFormData.paid_amount_after}
-                  />
-                </Grid>
-              ) : (
-                /* Edit mode: tabbed layout (Phase 3) */
-                <EditModeTabs
-                  sectionProps={{
-                    overview: { customer, customerDataSource, formData, invoice, depositMode },
-                    customer: {
-                      isEditing: true,
-                      customerDataSource,
-                      handleCustomerDataSourceChange,
-                      customer,
-                      formData,
-                      invoice,
-                      depositMode,
-                      editableItems,
-                      handleFieldChange,
-                      companies,
-                      loadingCompanies,
-                    },
-                    calculation: {
-                      isEditing: true,
-                      setIsEditing,
-                      validation,
-                      items,
-                      editableItems,
-                      handleAddSizeRow,
-                      handleChangeSizeRow,
-                      handleRemoveSizeRow,
-                      handleDeleteItem,
-                      handleChangeItem,
-                      formData,
-                      handleFieldChange,
-                      calculation,
-                      discountTypeState,
-                      setDiscountTypeState,
-                    },
-                    paymentTerms: {
-                      isEditing: true,
-                      formData,
-                      handleFieldChange,
-                      calculation,
-                      notes,
-                      setNotes,
-                      invoice,
-                      paidBeforeOverride: sideEdit.beforeFormData.paid_amount_before,
-                      paidAfterOverride: sideEdit.afterFormData.paid_amount_after,
-                    },
-                  }}
-                  sideEditProps={{
+              {/* Tabbed layout — used for both view (isEditing=false) and edit (true).
+                  Sections respect the isEditing flag to render read-only vs editable inputs. */}
+              <EditModeTabs
+                initialTab={initialEditMode ? "customer" : "overview"}
+                sectionProps={{
+                  overview: { customer, customerDataSource, formData, invoice, depositMode },
+                  customer: {
+                    isEditing,
+                    customerDataSource,
+                    handleCustomerDataSourceChange,
+                    customer,
+                    formData,
                     invoice,
-                    beforeFormData: sideEdit.beforeFormData,
-                    afterFormData: sideEdit.afterFormData,
-                    setBeforeField: sideEdit.setBeforeField,
-                    setAfterField: sideEdit.setAfterField,
-                    dirtyBefore: sideEdit.dirtyBefore,
-                    dirtyAfter: sideEdit.dirtyAfter,
-                    warnings: sideValidation.warnings,
-                    activeTab: activeSideTab,
-                    onTabChange: setActiveSideTab,
-                  }}
-                />
-              )}
+                    depositMode,
+                    editableItems,
+                    handleFieldChange,
+                    companies,
+                    loadingCompanies,
+                  },
+                  calculation: {
+                    isEditing,
+                    setIsEditing: canEditInvoice && !lockedReadOnly ? setIsEditing : undefined,
+                    validation,
+                    items,
+                    editableItems,
+                    handleAddSizeRow,
+                    handleChangeSizeRow,
+                    handleRemoveSizeRow,
+                    handleDeleteItem,
+                    handleChangeItem,
+                    formData,
+                    handleFieldChange,
+                    calculation,
+                    discountTypeState,
+                    setDiscountTypeState,
+                  },
+                  paymentTerms: {
+                    isEditing,
+                    formData,
+                    handleFieldChange,
+                    calculation,
+                    notes,
+                    setNotes,
+                    invoice,
+                    paidBeforeOverride: sideEdit.beforeFormData.paid_amount_before,
+                    paidAfterOverride: sideEdit.afterFormData.paid_amount_after,
+                  },
+                  evidence: {
+                    invoice,
+                    currentUserRole: currentUser?.role,
+                    // Evidence uploads are allowed even from view mode — role
+                    // is still gated inside EvidenceSection (admin/account/sale).
+                    readOnly: false,
+                  },
+                }}
+                sideEditProps={{
+                  invoice,
+                  beforeFormData: sideEdit.beforeFormData,
+                  afterFormData: sideEdit.afterFormData,
+                  setBeforeField: isEditing ? sideEdit.setBeforeField : undefined,
+                  setAfterField: isEditing ? sideEdit.setAfterField : undefined,
+                  dirtyBefore: sideEdit.dirtyBefore,
+                  dirtyAfter: sideEdit.dirtyAfter,
+                  warnings: sideValidation.warnings,
+                  activeTab: activeSideTab,
+                  onTabChange: setActiveSideTab,
+                  readOnly: !isEditing,
+                }}
+              />
             </Box>
           )}
         </DialogContent>

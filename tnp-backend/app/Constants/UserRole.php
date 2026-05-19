@@ -4,30 +4,37 @@ namespace App\Constants;
 
 /**
  * User Role Constants
- * 
+ *
  * Centralized role definitions to avoid hard-coded strings
  * throughout the application.
  */
 class UserRole
 {
     const ADMIN = 'admin';
+
     const MANAGER = 'manager';
+
+    const ACCOUNT = 'account';
+
     const SALE = 'sale';
+
     const TELESALE = 'telesale';
+
     const PRODUCTION = 'production';
+
     const GRAPHIC = 'graphic';
+
     const TECHNICIAN = 'technician';
 
     /**
      * Get all available roles
-     * 
-     * @return array
      */
     public static function all(): array
     {
         return [
             self::ADMIN,
             self::MANAGER,
+            self::ACCOUNT,
             self::SALE,
             self::TELESALE,
             self::PRODUCTION,
@@ -38,8 +45,6 @@ class UserRole
 
     /**
      * Get roles that can manage customers
-     * 
-     * @return array
      */
     public static function canManageCustomers(): array
     {
@@ -53,8 +58,6 @@ class UserRole
 
     /**
      * Get roles that can allocate customers
-     * 
-     * @return array
      */
     public static function canAllocate(): array
     {
@@ -66,8 +69,6 @@ class UserRole
 
     /**
      * Get roles that can view reports
-     * 
-     * @return array
      */
     public static function canViewReports(): array
     {
@@ -79,9 +80,6 @@ class UserRole
 
     /**
      * Check if role is valid
-     * 
-     * @param string $role
-     * @return bool
      */
     public static function isValid(string $role): bool
     {

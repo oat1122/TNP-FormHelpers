@@ -12,11 +12,30 @@ import { useMemo } from "react";
  *   hasBlockingErrors   — true if any 'error' severity → Save disabled
  *   blockingReason      — first error message (Save button tooltip)
  */
-export function useInvoiceCreateValidation({ groups, formState, financials, sourceQuotation }) {
+export function useInvoiceCreateValidation({
+  groups,
+  formState,
+  financials,
+  sourceQuotation,
+  hasInvoices = false,
+  invoiceCount = 0,
+}) {
   return useMemo(() => {
     const list = [];
 
-    // 0. Signature evidence required before invoice can be created
+    // 0a. Quotation already has an invoice — block duplicate creation
+    if (hasInvoices) {
+      list.push({
+        id: "already-has-invoice",
+        severity: "error",
+        message:
+          invoiceCount > 1
+            ? `ใบเสนอราคานี้มีใบแจ้งหนี้แล้ว ${invoiceCount} ใบ — สร้างซ้ำไม่ได้ ไปที่หน้าใบแจ้งหนี้เพื่อดู`
+            : "ใบเสนอราคานี้มีใบแจ้งหนี้อยู่แล้ว — สร้างซ้ำไม่ได้ ไปที่หน้าใบแจ้งหนี้เพื่อดู",
+      });
+    }
+
+    // 0b. Signature evidence required before invoice can be created
     const hasSignature =
       Array.isArray(sourceQuotation?.signature_images) &&
       sourceQuotation.signature_images.length > 0;
@@ -122,5 +141,5 @@ export function useInvoiceCreateValidation({ groups, formState, financials, sour
       hasBlockingErrors: errors.length > 0,
       blockingReason: errors[0]?.message || "",
     };
-  }, [groups, formState, financials, sourceQuotation]);
+  }, [groups, formState, financials, sourceQuotation, hasInvoices, invoiceCount]);
 }

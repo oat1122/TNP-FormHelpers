@@ -91,6 +91,9 @@ class InvoiceController extends Controller
                 'due_date_from' => $request->query('due_date_from'),
                 'due_date_to' => $request->query('due_date_to'),
                 'overdue' => $request->query('overdue'),
+                'signature_uploaded' => $request->query('signature_uploaded'),
+                'only_mine' => $request->query('only_mine'),
+                'current_user_id' => optional($request->user())->user_uuid,
                 'status' => $request->query('status')
                     ? ['invoices.status', '=', $request->query('status')]
                     : null,
@@ -436,6 +439,25 @@ class InvoiceController extends Controller
         $options['deposit_mode'] = $this->extractDepositMode($request, $invoice);
 
         return $this->invoiceService->streamPdf($id, $options);
+    }
+
+    /**
+     * Stream an ad-hoc delivery-note PDF derived from this invoice. Lets the
+     * Accounting/Invoices table render a "ใบส่งของ" PDF for any invoice with
+     * uploaded evidence even when no DeliveryNote record has been issued yet.
+     * Nothing is persisted to delivery_notes — output is built in-memory by
+     * DeliveryNote\PdfService::streamPdfFromInvoice.
+     *
+     * GET /api/v1/invoices/{id}/pdf/delivery-note/stream
+     */
+    public function streamDeliveryNotePdfFromInvoice(Request $request, string $id): \Symfony\Component\HttpFoundation\Response
+    {
+        $options = [
+            'document_header_type' => $request->query('document_header_type', 'ต้นฉบับ'),
+        ];
+
+        return app(\App\Services\Accounting\DeliveryNote\PdfService::class)
+            ->streamPdfFromInvoice($id, $options);
     }
 
     /**

@@ -4,6 +4,8 @@ import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import {
   Box,
   Button,
+  Checkbox,
+  FormControlLabel,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
@@ -14,6 +16,10 @@ import {
 const InvoicesControlsBar = ({
   viewMode,
   onViewModeChange,
+  showOnlyMine = false,
+  onShowOnlyMineChange,
+  signatureOnly = false,
+  onSignatureOnlyChange,
   canManageInvoices,
   onOpenCompanyDialog,
   onCreateInvoice,
@@ -34,10 +40,44 @@ const InvoicesControlsBar = ({
         borderColor: "divider",
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
         <Typography variant="h6" fontWeight={600} sx={{ fontSize: "1rem" }}>
           รายการใบแจ้งหนี้
         </Typography>
+
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={showOnlyMine}
+              onChange={(e) => onShowOnlyMineChange?.(e.target.checked)}
+              color="primary"
+              size="small"
+            />
+          }
+          label={
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              แสดงเฉพาะฉัน
+            </Typography>
+          }
+          sx={{ m: 0 }}
+        />
+
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={signatureOnly}
+              onChange={(e) => onSignatureOnlyChange?.(e.target.checked)}
+              color="primary"
+              size="small"
+            />
+          }
+          label={
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              แสดงเฉพาะใบที่มีหลักฐานการเซ็น
+            </Typography>
+          }
+          sx={{ m: 0 }}
+        />
 
         <ToggleButtonGroup
           value={viewMode}

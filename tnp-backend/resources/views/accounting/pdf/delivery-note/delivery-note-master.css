@@ -6,44 +6,59 @@
     color: var(--c-text-primary);
 }
 
-/* ============================================================
-   Unified party box — same markup + sizing for company & customer
-   ============================================================
-   Replaces split .company-* / .customer-* classes so both parties
-   render at identical font sizes (user request: "section บริษัท
-   และ section ลูกค้า ควรใช้class เดียวกัน และขนาดตัวเท้ากัน").
-   ============================================================ */
-.party-label {
-    font-size: var(--fs-fine);
-    color: var(--c-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-top: var(--sp-2);
-    margin-bottom: 2pt;
+/* ===== PDF Header overrides (mirror invoice-header markup)
+   Base styles for .pdf-header, .header-left/right, .logo-wrap, .company-name,
+   .company-addr, .company-meta, .customer-name, .doc-title, .doc-meta,
+   .header-divider live in views/pdf/partials/_doc-header-shared.css.
+   Only rules NOT covered there (or that need delivery-note-specific values)
+   are defined below. */
+
+/* Doc title brand color — moved here from invoice-header.css (which is no
+   longer loaded by delivery-note to avoid items-table col-width pollution). */
+.doc-title {
+    color: #900f0f;
 }
 
-.party-box {
-    margin-bottom: var(--sp-2);
+.customer-line {
+    font-size: 8.5pt;
+    color: #34495e;
+    margin-bottom: 1.5pt;
+    line-height: 1.25;
 }
 
-.party-box .party-name {
-    font-size: var(--fs-base);
-    font-weight: bold;
-    color: var(--c-text-primary);
-    line-height: 1.3;
-    margin-bottom: 2pt;
+.customer-line.muted {
+    color: #6c757d;
 }
 
-.party-box .party-line {
-    font-size: var(--fs-sm);
-    color: var(--c-text-primary);
-    line-height: 1.4;
-    margin: 0;
+.doc-header-section {
+    width: 100%;
+    margin-bottom: 8pt;
 }
 
-.party-box .party-line.muted {
-    color: var(--c-text-secondary);
+.doc-header-type {
+    font-size: 10pt !important;
+    font-weight: 400 !important;
+    color: #666 !important;
+    margin: 2pt 0 0 0 !important;
+    padding: 0 !important;
+    font-style: italic !important;
+    letter-spacing: 0.3pt !important;
+    text-align: center !important;
+    display: block !important;
+    width: 100% !important;
 }
+
+/* Emphasize "กำหนดส่ง" — mirrors invoice's due-date treatment */
+.doc-meta .meta-row-due-date {
+    font-size: var(--fs-lg);
+    color: var(--c-brand);
+    margin-top: 4pt;
+    margin-bottom: 4pt;
+}
+.doc-meta .meta-row-due-date strong {
+    color: var(--c-brand);
+}
+
 .mb-3 {
     margin-bottom: var(--sp-3);
 }
@@ -54,54 +69,108 @@
     color: var(--c-text-secondary);
 }
 
-/* Items table — base rules (`.formal` overlay handled in pdf-doc-master.css) */
-.items-table {
+/* ============================================================
+   Items table — adopt invoice-body visual style (pink title rows + red
+   bottom border + brand-color group number) so the DN matches the look
+   of invoice items. Structure stays 3-col (desc / qty / unit) because
+   delivery notes don't carry prices.
+   ============================================================ */
+.items-table.slim {
+    table-layout: fixed;
     width: 100%;
     border-collapse: collapse;
-}
-.items-table th,
-.items-table td {
-    border-bottom: 0.5pt solid var(--c-border-light);
-    padding: 6pt 8pt;
-    vertical-align: top;
-}
-.items-table thead th {
-    background: var(--c-bg-header-row);
-    font-weight: bold;
+    margin-bottom: 12pt;
 }
 
-.items-table .group-row .desc {
-    font-weight: bold;
+/* Column widths — delivery-note's 3-col layout */
+.items-table.slim col.w-desc {
+    width: 60%;
 }
-.items-table .desc-head {
-    text-align: left;
+.items-table.slim col.w-qty {
+    width: 20%;
 }
-.items-table .num {
+.items-table.slim col.w-unit {
+    width: 20%;
+}
+
+/* === Header row (dark red bg comes from pdf-shared-base.css thead th) === */
+.items-table.slim thead th {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 6pt 10pt;
+    vertical-align: middle;
+    border: none;
+}
+/* .desc-head header alignment is handled by the blade utility `.text-center`.
+   `<th>` browser default is also center, so no extra rule needed. */
+
+/* === Body cell defaults === */
+.items-table.slim th,
+.items-table.slim td {
+    border-bottom: 0.5pt solid #dddddd;
+    padding: 6pt 10pt;
+    vertical-align: top;
+}
+.items-table.slim td.num {
     text-align: right;
     white-space: nowrap;
 }
-.items-table .child {
-    padding-left: var(--sp-4);
-    color: var(--c-text-primary);
+
+/* === Group row (parent / title) — pink bg + red bottom border, mirrors
+       invoice-body `tr.invb-title-row` === */
+.items-table.slim tr.group-row td {
+    background: #fcd4d4;
+    border-bottom: 0.6pt solid #670000;
+    padding: 6pt 10pt;
+    vertical-align: middle;
+    font-size: 10pt;
+    font-weight: bold;
+    color: #1a1a1a;
 }
-.items-table .meta-light {
-    color: var(--c-text-secondary);
+.items-table.slim tr.group-row td.desc {
+    text-align: left;
+}
+.items-table.slim tr.group-row td.num {
+    text-align: right;
+    font-weight: bold;
+    color: #1a1a1a;
+}
+.items-table.slim tr.group-row .group-no {
+    display: inline-block;
+    min-width: 14pt;
+    font-weight: 700;
+    color: #900f0f;
+    margin-right: 4pt;
+}
+.items-table.slim tr.group-row .meta-light {
+    color: #555555;
     font-weight: normal;
 }
-.items-table .group-no {
-    display: inline-block;
-    min-width: 18px;
-}
 
-/* Column widths */
-.w-desc {
-    width: 60%;
+/* === Item row (child / subtitle) — no bg + gray bottom border, mirrors
+       invoice-body `tr.invb-subtitle-row` === */
+.items-table.slim tr.item-row td {
+    background: transparent;
+    border-bottom: 0.5pt solid #dddddd;
+    padding: 4pt 10pt 6pt 10pt;
+    vertical-align: top;
+    font-size: 9pt;
+    color: #555555;
+    line-height: 1.45;
 }
-.w-qty {
-    width: 20%;
+.items-table.slim tr.item-row td.desc.child {
+    padding-left: 28pt;
+    text-align: left;
 }
-.w-unit {
-    width: 20%;
+.items-table.slim tr.item-row td.num {
+    color: #1a1a1a;
+}
+.items-table.slim tr.item-row .meta-light {
+    display: block;
+    color: #888888;
+    font-weight: normal;
+    font-size: 8.5pt;
+    margin-top: 2pt;
 }
 
 /* No items */
@@ -173,33 +242,3 @@
     border-bottom: 0.5pt solid var(--c-border-strong);
 }
 
-/* Document subtitle (for header types like สำเนา) */
-.doc-subtitle {
-    font-size: var(--fs-md);
-    color: var(--c-text-secondary);
-    margin-top: var(--sp-1);
-    margin-bottom: var(--sp-2);
-    font-weight: normal;
-}
-
-/* Delivery notes section — important notice (red text per requirement) */
-.delivery-notes-section {
-    margin-top: var(--sp-6);
-    padding: var(--sp-3) 0;
-    page-break-inside: avoid;
-    border-top: 0.5pt solid var(--c-border-light);
-}
-.delivery-notes-title {
-    font-weight: bold;
-    color: var(--c-accent-warning);
-    font-size: var(--fs-fine);
-    margin-bottom: var(--sp-1);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-.delivery-notes-body {
-    color: var(--c-accent-warning);
-    font-size: var(--fs-fine);
-    line-height: 1.4;
-    white-space: pre-line;
-}

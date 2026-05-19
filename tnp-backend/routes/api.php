@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
 use App\Http\Controllers\Api\V1\Accounting\QuotationController;
 use App\Http\Controllers\Api\V1\Accounting\QuotationReportController;
 use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\SocketTokenController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CostCalc\CostFabricController;
 use App\Http\Controllers\Api\V1\CostCalc\PatternController;
@@ -20,6 +19,7 @@ use App\Http\Controllers\Api\V1\MonitorProduction\ProductionCostController;
 use App\Http\Controllers\Api\V1\Notebook\NotebookController;
 use App\Http\Controllers\Api\V1\Notebook\NotebookKpiController;
 use App\Http\Controllers\Api\V1\Pricing\PricingController;
+use App\Http\Controllers\Api\V1\SocketTokenController;
 use App\Http\Controllers\Api\V1\StatsController;
 use App\Http\Controllers\Api\V1\SubRole\SubRoleController;
 use App\Http\Controllers\Api\V1\Supy\SupplierCategoryController;
@@ -75,6 +75,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     });
 
     // ---------- Telesales & Allocation (Protected Routes) ----------
+    Route::get('/notebooks/all-tab-stats', [NotebookKpiController::class, 'allTabStats']);
     Route::get('/notebooks/self-report', [NotebookController::class, 'selfReport']);
     Route::post('/notebooks/check-duplicate', [NotebookController::class, 'checkDuplicate']);
     Route::get('/notebooks/customer-care/sources', [NotebookController::class, 'customerCareSources']);
@@ -147,7 +148,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'dashboard']);
         Route::get('/details', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'details']);
         Route::get('/recall-details', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'recallDetails']);
-        Route::get('/recall-history', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'recallHistory']);
     });    // ---------- Supplier System ----------
     Route::prefix('supplier')->group(function () {
         Route::get('/products', [SupplierProductController::class, 'index']);
@@ -450,6 +450,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/invoices/{id}/pdf/tax/full/download', 'downloadTaxInvoiceFullPdf');
         Route::post('/invoices/{id}/pdf/receipt/full/download', 'downloadReceiptFullPdf');
 
+        // Ad-hoc Delivery Note PDF — rendered from invoice data without persisting
+        // a DeliveryNote record. Enabled in the UI when the invoice has evidence_files.
+        Route::get('/invoices/{id}/pdf/delivery-note/stream', 'streamDeliveryNotePdfFromInvoice');
+
         // Legacy support (will use deposit_display_order as default mode) - UNUSED
         // Route::get('/invoices/{id}/pdf/stream', 'streamPdf');
 
@@ -529,20 +533,5 @@ Route::get('/clear-system-cache', function () {
     return response()->json([
         'success' => true,
         'message' => 'System Cache (Config, Route, View, Event) has been cleared successfully.',
-    ]);
-});
-
-// ========== EMERGENCY ROUTE (Run Recall Snapshot Without SSH) ==========
-Route::get('/run-recall-snapshot', function () {
-    $exitCode = \Illuminate\Support\Facades\Artisan::call('recall:take-snapshot');
-    $output = \Illuminate\Support\Facades\Artisan::output();
-
-    return response()->json([
-        'success' => $exitCode === 0,
-        'message' => $exitCode === 0
-            ? 'Recall snapshot completed successfully.'
-            : 'Recall snapshot failed. Check server logs.',
-        'output' => $output,
-        'executed_at' => now()->format('Y-m-d H:i:s'),
     ]);
 });

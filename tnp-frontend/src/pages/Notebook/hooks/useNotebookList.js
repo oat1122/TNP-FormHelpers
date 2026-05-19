@@ -7,6 +7,7 @@ import { setInputList, setMode } from "../../../features/Customer/customerSlice"
 import {
   useConvertNotebookMutation,
   useDeleteNotebookMutation,
+  useGetNotebookAllTabStatsQuery,
   useGetNotebooksQuery,
   useReserveNotebookMutation,
   useUpdateNotebookMutation,
@@ -38,6 +39,28 @@ export const useNotebookList = () => {
     refetch,
     error: fetchError,
   } = useGetNotebooksQuery(pageState.queryFilters);
+
+  const allTabStatsFilters = useMemo(
+    () => ({
+      search: pageState.queryFilters.search,
+      start_date: pageState.queryFilters.start_date,
+      end_date: pageState.queryFilters.end_date,
+      date_filter_by: pageState.queryFilters.date_filter_by,
+      status: pageState.queryFilters.status,
+      action: pageState.queryFilters.action,
+      entry_type: pageState.queryFilters.entry_type,
+      manage_by: pageState.queryFilters.manage_by,
+    }),
+    [pageState.queryFilters]
+  );
+
+  const {
+    data: allTabStats,
+    isFetching: isAllTabStatsFetching,
+    error: allTabStatsError,
+  } = useGetNotebookAllTabStatsQuery(allTabStatsFilters, {
+    skip: pageState.scopeFilter !== "all",
+  });
 
   const [deleteNotebook] = useDeleteNotebookMutation();
   const [convertNotebook, { isLoading: isConverting }] = useConvertNotebookMutation();
@@ -279,6 +302,9 @@ export const useNotebookList = () => {
     selectedQueueIds,
     assignDialogState,
     exportState,
+    allTabStats,
+    isAllTabStatsFetching,
+    allTabStatsError,
     refetch,
     handleDelete,
     handleAssign,

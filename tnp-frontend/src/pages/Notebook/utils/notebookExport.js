@@ -425,6 +425,34 @@ export const buildNotebookPdfRows = (rows = []) => {
   }));
 };
 
+// Daily activity summary used for the per-day header row in NotebookPDF.
+// Skips personal_activity rows — those keep the same line-item layout users asked us to leave alone.
+export const buildNotebookDailySummary = (rows = []) => {
+  const buckets = new Map();
+
+  rows.forEach((row) => {
+    if (!row || row.rowType === "personal_activity") {
+      return;
+    }
+
+    const key = row.dateGroupValue || row.date || "-";
+    const bucket = buckets.get(key) || { called: 0, recall: 0, converted: 0, total: 0 };
+
+    if (row.rowType === "recall_action") {
+      bucket.recall += 1;
+    } else if (row.status === "ได้งาน") {
+      bucket.converted += 1;
+    } else {
+      bucket.called += 1;
+    }
+
+    bucket.total = bucket.called + bucket.recall + bucket.converted;
+    buckets.set(key, bucket);
+  });
+
+  return buckets;
+};
+
 export const buildNotebookLeadSummaryRows = (leadAdditions = []) =>
   leadAdditions
     .map((item) => ({

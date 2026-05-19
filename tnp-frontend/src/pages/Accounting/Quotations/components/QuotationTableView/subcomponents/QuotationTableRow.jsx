@@ -36,6 +36,7 @@ const QuotationTableRow = ({
   onDuplicate,
   onEdit,
   canEditQuotations = false,
+  currentUserRole,
   onGoToInvoice,
   onActionSuccess,
 }) => {
@@ -43,6 +44,15 @@ const QuotationTableRow = ({
   const sColor = statusColor[status] || "default";
   const isApproved = status === "approved";
   const hasInvoices = Number(q?.invoices_count || 0) > 0;
+  // Sales role keeps the legacy guard: cannot edit once an invoice references the quotation.
+  // Admin/account bypass the guard — their edits flow through the sync service to linked invoices.
+  const role = String(currentUserRole || "").toLowerCase();
+  const editBlockedBySale = role === "sale" && hasInvoices;
+  // Once a quotation is approved (or has progressed beyond it), every role must
+  // revert the status back to draft via the Undo button before editing — keeps
+  // approved/sent/completed documents immutable until explicitly re-opened.
+  const editBlockedByStatus = !["draft", "pending_review", "rejected"].includes(status);
+  const editDisabled = editBlockedBySale || editBlockedByStatus;
   const hasSignature = Array.isArray(q?.signature_images) && q.signature_images.length > 0;
 
   const { canApprove, canRevokeApproval, approving, submitting, onApprove } = useQuotationCardLogic(
@@ -218,15 +228,21 @@ const QuotationTableRow = ({
 
             {canEditQuotations && onEdit && (
               <Tooltip
-                title={hasInvoices ? "ไม่สามารถแก้ไขได้ — มีใบแจ้งหนี้ที่อ้างอิงแล้ว" : "แก้ไข"}
+                title={(() => {
+                  if (editBlockedByStatus) return "ไม่สามารถแก้ไขได้ — กดย้อนสถานะเป็น Draft ก่อน";
+                  if (editBlockedBySale) return "ไม่สามารถแก้ไขได้ — มีใบแจ้งหนี้ที่อ้างอิงแล้ว";
+                  if (hasInvoices)
+                    return "แก้ไข — การเปลี่ยนแปลงจะซิงค์ไปยังใบแจ้งหนี้ที่เชื่อมโยง";
+                  return "แก้ไข";
+                })()}
                 arrow
               >
                 <span>
                   <IconButton
                     size="small"
-                    disabled={hasInvoices}
-                    onClick={() => onEdit?.(q.id)}
-                    sx={{ color: hasInvoices ? undefined : "warning.main" }}
+                    disabled={editDisabled}
+                    onClick={() => onEdit?.(q.id, q.status)}
+                    sx={{ color: editDisabled ? undefined : "warning.main" }}
                   >
                     <EditIcon sx={{ fontSize: 18 }} />
                   </IconButton>

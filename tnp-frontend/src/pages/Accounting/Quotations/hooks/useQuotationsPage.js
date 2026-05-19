@@ -11,6 +11,7 @@ import {
 import { addNotification } from "../../../../features/Accounting/accountingSlice";
 import { PERFORMANCE_CONFIG } from "../../config/performanceConfig";
 import { useAdvancedFilter } from "../../shared/components";
+import { useCurrentUser } from "../../shared/hooks/useCurrentUser";
 
 const statusOrder = ["draft", "pending_review", "approved", "sent", "completed", "rejected"];
 
@@ -25,6 +26,8 @@ const quotationStatusOptions = [
 export const useQuotationsPage = ({ enabled = true } = {}) => {
   const dispatch = useDispatch();
   const { filters, handlers, getQueryArgs } = useAdvancedFilter();
+  const { currentUser } = useCurrentUser();
+  const userRole = String(currentUser?.role || "").toLowerCase();
 
   const [viewMode, setViewMode] = useState("table");
   const [signatureOnly, setSignatureOnly] = useState(false);
@@ -47,6 +50,11 @@ export const useQuotationsPage = ({ enabled = true } = {}) => {
   const [editOpen, setEditOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [editQuotationId, setEditQuotationId] = useState(null);
+
+  // View-mode state — reuses same QuotationDuplicateDialog with mode="view"
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewData, setViewData] = useState(null);
+  const [viewQuotationId, setViewQuotationId] = useState(null);
 
   const [lastSavedId, setLastSavedId] = useState(null);
 
@@ -138,25 +146,49 @@ export const useQuotationsPage = ({ enabled = true } = {}) => {
     );
   }, [refetch, dispatch]);
 
-  // Edit flow (Edit-Phase 4):
-  // 1. Check related invoices first — if any → block edit (toast warning)
-  // 2. Otherwise → fetch duplicate-data (same shape) → open dialog with mode="edit"
+  // Edit flow:
+  // 1. Approved/sent/completed quotations are locked for every role — user must
+  //    use the Undo button to revert status to draft before editing.
+  // 2. Check related invoices. Sales role keeps the legacy block — they cannot edit a
+  //    quotation that already produced invoices. Admin/account bypass and trigger
+  //    auto-sync downstream (backend ManagementService::update → SyncService).
+  // 3. Fetch duplicate-data (same shape) → open dialog with mode="edit".
   const handleEdit = useCallback(
-    async (quotationId) => {
+    async (quotationId, status) => {
+      const normalizedStatus = String(status || "").toLowerCase();
+      if (normalizedStatus && !["draft", "pending_review", "rejected"].includes(normalizedStatus)) {
+        dispatch(
+          addNotification({
+            type: "error",
+            title: "ไม่สามารถแก้ไขได้",
+            message: "กดปุ่ม 'ย้อนสถานะเป็น Draft' ก่อน แล้วจึงแก้ไขได้",
+          })
+        );
+        return;
+      }
       try {
         const relRes = await triggerGetRelatedInvoices(quotationId).unwrap();
         const list = relRes?.data?.data || relRes?.data || [];
         const hasInvoices = Array.isArray(list) && list.length > 0;
         if (hasInvoices) {
+          if (userRole === "sale") {
+            dispatch(
+              addNotification({
+                type: "error",
+                title: "ไม่สามารถแก้ไขได้",
+                message:
+                  "ใบเสนอราคานี้มีใบแจ้งหนี้ที่อ้างอิงอยู่แล้ว — แก้ไขจะกระทบใบแจ้งหนี้ที่ออกไปแล้ว",
+              })
+            );
+            return;
+          }
           dispatch(
             addNotification({
-              type: "error",
-              title: "ไม่สามารถแก้ไขได้",
-              message:
-                "ใบเสนอราคานี้มีใบแจ้งหนี้ที่อ้างอิงอยู่แล้ว — แก้ไขจะกระทบใบแจ้งหนี้ที่ออกไปแล้ว",
+              type: "info",
+              title: "ใบเสนอราคานี้มีใบแจ้งหนี้ที่เชื่อมโยง",
+              message: `การแก้ไขจะซิงค์ข้อมูลไปยังใบแจ้งหนี้ที่เกี่ยวข้อง (${list.length} ใบ) อัตโนมัติ`,
             })
           );
-          return;
         }
 
         // edit flow needs signatures preserved (duplicate flow clears them by default)
@@ -178,7 +210,7 @@ export const useQuotationsPage = ({ enabled = true } = {}) => {
         );
       }
     },
-    [triggerGetRelatedInvoices, triggerGetDuplicateData, dispatch]
+    [triggerGetRelatedInvoices, triggerGetDuplicateData, dispatch, userRole]
   );
 
   const handleCloseEditDialog = useCallback(() => {
@@ -256,11 +288,48 @@ export const useQuotationsPage = ({ enabled = true } = {}) => {
     }
   }, [lastSavedId, refetch]);
 
-  const openQuotationDetail = useCallback((quotationId) => {
-    if (!quotationId) return;
-    setSelectedQuotation({ id: quotationId });
-    setDetailOpen(true);
+  // View flow — opens QuotationDuplicateDialog with mode="view" (read-only tabbed layout).
+  // Reuses the duplicate-data fetch so the dialog gets the same shape as edit mode.
+  const handleView = useCallback(
+    async (quotationId) => {
+      if (!quotationId) return;
+      try {
+        const result = await triggerGetDuplicateData({
+          id: quotationId,
+          preserveSignatures: true,
+        }).unwrap();
+        setViewData(result.data);
+        setViewQuotationId(quotationId);
+        setViewOpen(true);
+      } catch (err) {
+        if (import.meta.env.DEV) console.error("Failed to open view dialog", err);
+        dispatch(
+          addNotification({
+            type: "error",
+            title: "ไม่สามารถเปิดหน้าต่างดูรายละเอียดได้",
+            message: err?.data?.message || err.message || "เกิดข้อผิดพลาด",
+          })
+        );
+      }
+    },
+    [triggerGetDuplicateData, dispatch]
+  );
+
+  const handleCloseViewDialog = useCallback(() => {
+    setViewOpen(false);
+    setViewData(null);
+    setViewQuotationId(null);
   }, []);
+
+  // Deep-link / cross-mode entry point — uses the same view flow as the eye button.
+  const openQuotationDetail = useCallback(
+    (quotationId) => {
+      if (!quotationId) return;
+      setSelectedQuotation({ id: quotationId });
+      handleView(quotationId);
+    },
+    [handleView]
+  );
 
   const handleDetailSaveSuccess = useCallback(() => {
     setLastSavedId(selectedQuotation?.id || null);
@@ -337,6 +406,12 @@ export const useQuotationsPage = ({ enabled = true } = {}) => {
     handleCloseEditDialog,
     handleSaveEditSuccess,
     handleSignatureUploaded,
+    // View (reuses QuotationDuplicateDialog with mode="view")
+    viewOpen,
+    viewData,
+    viewQuotationId,
+    handleView,
+    handleCloseViewDialog,
     // Handlers
     handleDownloadPDF,
     handleDuplicate,

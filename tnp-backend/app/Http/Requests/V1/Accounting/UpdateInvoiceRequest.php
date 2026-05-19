@@ -37,7 +37,9 @@ class UpdateInvoiceRequest extends FormRequest
             // Basic invoice info
             'work_name' => 'sometimes|nullable|string|max:255',
             'quantity' => 'sometimes|integer|min:1',
-            'status' => 'sometimes|in:draft,pending,pending_after,approved,sent,partial_paid,fully_paid,overdue',
+            // SECURITY: `status` removed — status transitions must go through Invoice\StatusService
+            //   (submit/approve/reject/markPaid). Accepting client-set status bypasses the
+            //   state machine + audit log.
             'type' => 'sometimes|in:full_amount,remaining,deposit,partial',
 
             // Financial fields
@@ -75,10 +77,41 @@ class UpdateInvoiceRequest extends FormRequest
             // null = fall back to legacy atomic value
             'due_date_before' => 'sometimes|nullable|date',
             'due_date_after' => 'sometimes|nullable|date',
-            'paid_amount_before' => 'sometimes|nullable|numeric|min:0',
-            'paid_amount_after' => 'sometimes|nullable|numeric|min:0',
+            // SECURITY: `paid_amount_before` / `paid_amount_after` removed — payment writes
+            //   must go through Invoice\StatusService::recordPayment (atomic + history log).
+            //   Accepting client-set paid amount allows zeroing receivables.
             'notes_before' => 'sometimes|nullable|string|max:5000',
             'notes_after' => 'sometimes|nullable|string|max:5000',
+
+            // Items array — consumed by ManagementService::updateInvoiceItems().
+            // Structure mirrors FE editableItems (group with optional sizeRows).
+            // Validation is intentionally loose: the service builds InvoiceItem
+            // rows defensively (?? null / (int) / (float)) and FE owns the schema.
+            'items' => 'sometimes|array',
+            'items.*' => 'array',
+            'items.*.name' => 'sometimes|nullable|string|max:255',
+            'items.*.pattern' => 'sometimes|nullable|string|max:255',
+            'items.*.fabric_type' => 'sometimes|nullable|string|max:255',
+            'items.*.fabricType' => 'sometimes|nullable|string|max:255',
+            'items.*.color' => 'sometimes|nullable|string|max:255',
+            'items.*.size' => 'sometimes|nullable|string|max:255',
+            'items.*.unit' => 'sometimes|nullable|string|max:50',
+            'items.*.quantity' => 'sometimes|nullable|integer|min:0',
+            'items.*.unit_price' => 'sometimes|nullable|numeric|min:0',
+            'items.*.unitPrice' => 'sometimes|nullable|numeric|min:0',
+            'items.*.discount_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
+            'items.*.discount_amount' => 'sometimes|nullable|numeric|min:0',
+            'items.*.item_description' => 'sometimes|nullable|string|max:2000',
+            'items.*.quotation_item_id' => 'sometimes|nullable|string',
+            'items.*.pricing_request_id' => 'sometimes|nullable|string',
+            'items.*.status' => 'sometimes|nullable|string|max:50',
+            'items.*.notes' => 'sometimes|nullable|string|max:2000',
+            'items.*.sizeRows' => 'sometimes|array',
+            'items.*.sizeRows.*' => 'array',
+            'items.*.sizeRows.*.size' => 'sometimes|nullable|string|max:255',
+            'items.*.sizeRows.*.quantity' => 'sometimes|nullable|integer|min:0',
+            'items.*.sizeRows.*.unitPrice' => 'sometimes|nullable|numeric|min:0',
+            'items.*.sizeRows.*.notes' => 'sometimes|nullable|string|max:2000',
         ];
     }
 
@@ -90,7 +123,6 @@ class UpdateInvoiceRequest extends FormRequest
         return [
             'company_id.exists' => 'บริษัทที่เลือกไม่ถูกต้อง',
             'customer_data_source.in' => 'แหล่งข้อมูลลูกค้าไม่ถูกต้อง',
-            'status.in' => 'สถานะไม่ถูกต้อง',
             'type.in' => 'ประเภทใบแจ้งหนี้ไม่ถูกต้อง',
             'pricing_mode.in' => 'รูปแบบการคำนวณราคาไม่ถูกต้อง',
             'deposit_mode.in' => 'รูปแบบมัดจำไม่ถูกต้อง',

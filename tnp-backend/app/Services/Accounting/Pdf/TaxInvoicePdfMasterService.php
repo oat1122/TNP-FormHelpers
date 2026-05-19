@@ -38,8 +38,6 @@ class TaxInvoicePdfMasterService extends InvoicePdfMasterService
         $data['referenceNo'] = $metadata['referenceNo'];  // Reference number
         $data['mode'] = $metadata['mode'];                // before/after/full
 
-        \Log::info('🔍 TaxInvoicePDF buildViewData - Override metadata: '.json_encode($metadata));
-
         return $data;
     }
 

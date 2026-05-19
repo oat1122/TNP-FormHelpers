@@ -43,11 +43,15 @@ export const useInvoicesPage = ({ enabled = true } = {}) => {
   const [selectedQuotation, setSelectedQuotation] = useState(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
+  // When true, the next detail-dialog open should start in edit mode (table edit button)
+  const [detailInitialEditMode, setDetailInitialEditMode] = useState(false);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
   const [viewMode, setViewModeState] = useState(readPersistedViewMode);
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
+  const [signatureOnly, setSignatureOnly] = useState(false);
 
   const setViewMode = useCallback((next) => {
     if (next !== "table" && next !== "card") return;
@@ -70,6 +74,8 @@ export const useInvoicesPage = ({ enabled = true } = {}) => {
       ...getQueryArgs(),
       page,
       per_page: perPage,
+      ...(showOnlyMine ? { only_mine: 1 } : {}),
+      ...(signatureOnly ? { signature_uploaded: 1 } : {}),
     },
     { skip: !enabled }
   );
@@ -112,18 +118,28 @@ export const useInvoicesPage = ({ enabled = true } = {}) => {
 
   const handleViewInvoice = useCallback((invoice) => {
     setSelectedInvoiceId(invoice.id);
+    setDetailInitialEditMode(false);
+    setDetailDialogOpen(true);
+  }, []);
+
+  const handleEditInvoice = useCallback((invoice) => {
+    if (!invoice?.id) return;
+    setSelectedInvoiceId(invoice.id);
+    setDetailInitialEditMode(true);
     setDetailDialogOpen(true);
   }, []);
 
   const openInvoiceDetail = useCallback((invoiceId) => {
     if (!invoiceId) return;
     setSelectedInvoiceId(invoiceId);
+    setDetailInitialEditMode(false);
     setDetailDialogOpen(true);
   }, []);
 
   const handleCloseInvoiceDetail = useCallback(() => {
     setDetailDialogOpen(false);
     setSelectedInvoiceId(null);
+    setDetailInitialEditMode(false);
 
     if (searchParams.has("selected")) {
       const nextParams = new URLSearchParams(searchParams);
@@ -182,6 +198,11 @@ export const useInvoicesPage = ({ enabled = true } = {}) => {
     // View
     viewMode,
     setViewMode,
+    // Filter toggles
+    showOnlyMine,
+    setShowOnlyMine,
+    signatureOnly,
+    setSignatureOnly,
     // Permission
     canManageInvoices,
     // Dialog state
@@ -190,6 +211,7 @@ export const useInvoicesPage = ({ enabled = true } = {}) => {
     selectedQuotation,
     detailDialogOpen,
     selectedInvoiceId,
+    detailInitialEditMode,
     companyDialogOpen,
     // Handlers
     openQuotationSelection,
@@ -199,6 +221,7 @@ export const useInvoicesPage = ({ enabled = true } = {}) => {
     handleInvoiceCreateCancel,
     closeCreateDialog,
     handleViewInvoice,
+    handleEditInvoice,
     openInvoiceDetail,
     handleCloseInvoiceDetail,
     openCompanyDialog,

@@ -23,6 +23,7 @@ import ValidationBanner from "./subcomponents/ValidationBanner";
 import { buildInvoiceCreatePayload, buildInvoiceItems } from "./utils/invoiceCreatePayload";
 import {
   useGetQuotationQuery,
+  useGetQuotationRelatedInvoicesQuery,
   useCreateInvoiceFromQuotationMutation,
 } from "../../../../../features/Accounting/accountingApi";
 import { useQuotationGroups } from "../../../Quotations/hooks/useQuotationGroups";
@@ -53,6 +54,9 @@ const InvoiceCreateDialog = ({
   mode = "create",
 }) => {
   const { data, isLoading, isFetching } = useGetQuotationQuery(quotationId, { skip: !quotationId });
+  const { data: relatedInvoicesData } = useGetQuotationRelatedInvoicesQuery(quotationId, {
+    skip: !open || !quotationId,
+  });
   const [createInvoice, { isLoading: isCreating }] = useCreateInvoiceFromQuotationMutation();
 
   const { q, customer, formState, setters } = useInvoiceCreateForm(data);
@@ -88,6 +92,8 @@ const InvoiceCreateDialog = ({
     formState,
     financials,
     sourceQuotation: q,
+    hasInvoices: !!relatedInvoicesData?.has_invoices,
+    invoiceCount: relatedInvoicesData?.invoice_count ?? 0,
   });
 
   const [previewImage, setPreviewImage] = React.useState(null);

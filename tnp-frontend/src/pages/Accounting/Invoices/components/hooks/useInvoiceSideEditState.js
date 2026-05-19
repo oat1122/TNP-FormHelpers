@@ -78,19 +78,53 @@ export const useInvoiceSideEditState = (invoice) => {
   const [beforeFormData, setBeforeFormData] = useState(initialBefore);
   const [afterFormData, setAfterFormData] = useState(initialAfter);
 
+  // Track whether user has manually edited each paid_amount field.
+  // While untouched, the field auto-syncs with current totals (via syncDerivedAmounts)
+  // so that quantity/price edits flow through to side breakdown without manual fixup.
+  // Once the user types in the field, we respect their value until resetAll().
+  const [touchedBeforeAmount, setTouchedBeforeAmount] = useState(false);
+  const [touchedAfterAmount, setTouchedAfterAmount] = useState(false);
+
   // Re-init when a different invoice is loaded into the dialog
   useEffect(() => {
     setBeforeFormData(initialBefore);
     setAfterFormData(initialAfter);
+    setTouchedBeforeAmount(false);
+    setTouchedAfterAmount(false);
   }, [initialBefore, initialAfter]);
 
   const setBeforeField = useCallback((field, value) => {
+    if (field === "paid_amount_before") setTouchedBeforeAmount(true);
     setBeforeFormData((prev) => ({ ...prev, [field]: value }));
   }, []);
 
   const setAfterField = useCallback((field, value) => {
+    if (field === "paid_amount_after") setTouchedAfterAmount(true);
     setAfterFormData((prev) => ({ ...prev, [field]: value }));
   }, []);
+
+  /**
+   * Sync paid_amount_before/after from currently-computed totals.
+   * Called from the dialog whenever the calculation result changes (qty/price/discount/vat edits).
+   * Respects user-edited fields — only auto-fills fields the user hasn't typed in.
+   */
+  const syncDerivedAmounts = useCallback(
+    ({ depositAmount, remainingAmount }) => {
+      if (!touchedBeforeAmount) {
+        const next = numberOrZero(depositAmount);
+        setBeforeFormData((prev) =>
+          prev.paid_amount_before === next ? prev : { ...prev, paid_amount_before: next }
+        );
+      }
+      if (!touchedAfterAmount) {
+        const next = numberOrZero(remainingAmount);
+        setAfterFormData((prev) =>
+          prev.paid_amount_after === next ? prev : { ...prev, paid_amount_after: next }
+        );
+      }
+    },
+    [touchedBeforeAmount, touchedAfterAmount]
+  );
 
   const dirtyBefore = useMemo(
     () => !shallowEqual(beforeFormData, initialBefore),
@@ -122,6 +156,8 @@ export const useInvoiceSideEditState = (invoice) => {
   const resetAll = useCallback(() => {
     setBeforeFormData(initialBefore);
     setAfterFormData(initialAfter);
+    setTouchedBeforeAmount(false);
+    setTouchedAfterAmount(false);
   }, [initialBefore, initialAfter]);
 
   /** List of changed field labels (Thai) per side — used in UnsavedChangesDialog */
@@ -156,5 +192,6 @@ export const useInvoiceSideEditState = (invoice) => {
     dirtyFieldLabels,
     getSidePayload,
     resetAll,
+    syncDerivedAmounts,
   };
 };

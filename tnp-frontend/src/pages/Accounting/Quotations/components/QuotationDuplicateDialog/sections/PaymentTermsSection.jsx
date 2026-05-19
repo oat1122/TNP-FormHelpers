@@ -7,9 +7,9 @@ import SharedPaymentTermsSection from "../../QuotationDetailDialog/sections/Paym
  * Invoice section folder pattern and provide a single boundary if duplicate-
  * specific behavior diverges from QuotationDetailDialog later.
  */
-const PaymentTermsSection = ({ quotation, formState, financials, setters }) => (
+const PaymentTermsSection = ({ quotation, formState, financials, setters, isEditing = true }) => (
   <SharedPaymentTermsSection
-    isEditing={true}
+    isEditing={isEditing}
     quotation={quotation}
     formState={formState}
     financials={financials}

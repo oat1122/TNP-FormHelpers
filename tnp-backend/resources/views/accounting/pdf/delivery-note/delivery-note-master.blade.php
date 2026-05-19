@@ -19,18 +19,20 @@
         @php
           $unit=$g['unit']??'ชิ้น';
           $meta=array_filter([$g['pattern']?:null,$g['fabric']?:null,$g['color']?:null]);
-          $title=($g['name']?:'ไม่ระบุชื่องาน'); 
+          // SECURITY: escape user-controlled item fields before concat to prevent XSS/SSRF via mPDF <img src> fetching
+          $title=e($g['name']?:'ไม่ระบุชื่องาน');
           if($meta){
-            $title.=' <span class="meta-light">'.implode(', ',$meta).'</span>';
+            $title.=' <span class="meta-light">'.e(implode(', ',$meta)).'</span>';
           }
-          $items=[]; 
-          foreach(($g['rows']??[]) as $r){ 
-            $qty=(float)($r['quantity']??0); 
+          $items=[];
+          foreach(($g['rows']??[]) as $r){
+            $qty=(float)($r['quantity']??0);
             $items[]=[
               'desc'=> ($r['size']?:'-'),
               'qty'=>$qty,
-              'unit'=>$unit
-            ]; 
+              'unit'=>$unit,
+              'note'=> trim((string)($r['description']??'')),
+            ];
           }
           $groupsData[]=[
             'no'=>$no,
@@ -68,7 +70,12 @@
             {{-- แถวรายการย่อย (child) --}}
             @foreach($g['items'] as $it)
               <tr class="item-row">
-                <td class="desc child">{{ $it['desc'] }}</td>
+                <td class="desc child">
+                  {{ $it['desc'] }}
+                  @if (!empty($it['note']))
+                    <div class="meta-light">{{ $it['note'] }}</div>
+                  @endif
+                </td>
                 <td class="num">{{ number_format($it['qty']) }}</td>
                 <td class="num">{{ $it['unit'] }}</td>
               </tr>
@@ -80,11 +87,15 @@
       <div class="no-items-box"><strong>ไม่มีรายการสินค้า/บริการ</strong></div>
     @endif
 
-    {{-- หมายเหตุ (Phase 6: replace inline styles with design-token classes) --}}
+    {{-- หมายเหตุ — uses same panel-notes pattern as invoice _layout
+         (panel-box.panel-notes.formal → panel-title + panel-content). Styled by
+         pdf-doc-master.css `.panel-notes.formal` rules. --}}
     @if(!empty($deliveryNote->notes))
-      <div class="delivery-notes-section">
-        <div class="delivery-notes-title">หมายเหตุ:</div>
-        <div class="delivery-notes-body">{{ $deliveryNote->notes }}</div>
+      <div class="summary-notes-wrapper">
+        <div class="panel-box panel-notes formal">
+          <h3 class="panel-title panel-title--sm">หมายเหตุ</h3>
+          <div class="panel-content">{!! nl2br(e($deliveryNote->notes)) !!}</div>
+        </div>
       </div>
     @endif
 

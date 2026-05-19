@@ -27,7 +27,7 @@ import { setActiveStep } from "../../features/Accounting/accountingSlice";
 
 const drawerWidth = 280;
 
-const UNIFIED_DOC_ROLES = ["admin", "account"];
+const UNIFIED_DOC_ROLES = ["admin", "account", "sale"];
 
 // Navigation items — sidebar layout จะเลือกใช้ตาม role
 const baseItems = [

@@ -132,6 +132,7 @@ class Invoice extends Model
         'sent_by',
         'sent_at',
         'paid_at',
+        'last_synced_at',
     ];
 
     /**
@@ -180,6 +181,7 @@ class Invoice extends Model
         'rejected_at' => 'datetime',
         'sent_at' => 'datetime',
         'paid_at' => 'datetime',
+        'last_synced_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -208,11 +210,13 @@ class Invoice extends Model
             }
         });
 
-        // Invalidate PDF cache when invoice is updated
+        // Invalidate PDF cache when invoice is updated. Use
+        // invalidateAllForDocument so derived variants (tax_invoice,
+        // receipt, *_full) get busted too — they live on the same model
+        // class but in separate cache buckets.
         static::updated(function ($invoice) {
             try {
-                $cacheService = app(PdfCacheService::class);
-                $cacheService->invalidate('invoice', $invoice->id);
+                app(PdfCacheService::class)->invalidateAllForDocument($invoice);
                 Log::info('Invoice updated - PDF cache invalidated', ['invoice_id' => $invoice->id]);
             } catch (\Exception $e) {
                 Log::warning('Failed to invalidate PDF cache on invoice update: '.$e->getMessage());
@@ -222,8 +226,7 @@ class Invoice extends Model
         // Invalidate PDF cache when invoice is deleted
         static::deleted(function ($invoice) {
             try {
-                $cacheService = app(PdfCacheService::class);
-                $cacheService->invalidate('invoice', $invoice->id);
+                app(PdfCacheService::class)->invalidateAllForDocument($invoice);
                 Log::info('Invoice deleted - PDF cache invalidated', ['invoice_id' => $invoice->id]);
             } catch (\Exception $e) {
                 Log::warning('Failed to invalidate PDF cache on invoice delete: '.$e->getMessage());
@@ -262,6 +265,19 @@ class Invoice extends Model
     {
         return $this->hasMany(InvoiceItem::class, 'invoice_id')
             ->orderBy('sequence_order');
+    }
+
+    /**
+     * Relationship: Invoice has many DeliveryNotes (one invoice → many delivery shipments).
+     * Used by the Accounting/Invoices table to render a "ดาวน์โหลด PDF ใบส่งของ" button.
+     *
+     * @return HasMany<DeliveryNote>
+     */
+    public function deliveryNotes(): HasMany
+    {
+        return $this->hasMany(DeliveryNote::class, 'invoice_id', 'id')
+            ->select(['id', 'invoice_id', 'number', 'status', 'created_at'])
+            ->orderBy('created_at', 'desc');
     }
 
     /**
@@ -451,26 +467,6 @@ class Invoice extends Model
     }
 
     /**
-     * Auto-generate invoice number
-     */
-    public static function generateInvoiceNumber(string $companyId): string
-    {
-        return app(\App\Services\Support\DocumentNumberService::class)
-            ->next($companyId, 'invoice');
-    }
-
-    /**
-     * Auto-generate invoice number based on deposit display order
-     */
-    public static function generateInvoiceNumberByDepositMode(string $companyId, string $depositDisplayOrder = 'before'): string
-    {
-        $docType = $depositDisplayOrder === 'after' ? 'invoice_after' : 'invoice_before';
-
-        return app(\App\Services\Support\DocumentNumberService::class)
-            ->next($companyId, $docType);
-    }
-
-    /**
      * Generate and assign appropriate invoice numbers based on deposit mode
      */
     public function assignInvoiceNumbers(): void
@@ -521,52 +517,6 @@ class Invoice extends Model
     public function isOverdue(): bool
     {
         return $this->due_date && $this->due_date < now() && ! $this->isFullyPaid();
-    }
-
-    /**
-     * Record payment
-     */
-    public function recordPayment(float $amount, ?string $method = null, ?string $reference = null): self
-    {
-        $this->paid_amount += $amount;
-
-        if ($method) {
-            $this->payment_method = $method;
-        }
-
-        // Update status based on payment
-        if ($this->isFullyPaid()) {
-            $this->status = 'fully_paid';
-        } else {
-            $this->status = 'partial_paid';
-        }
-
-        $this->save();
-
-        return $this;
-    }
-
-    /**
-     * Check if invoice can be converted to receipt
-     */
-    public function canConvertToReceipt(): bool
-    {
-        return in_array($this->status, ['approved', 'sent', 'partial_paid', 'fully_paid']);
-    }
-
-    /**
-     * Sync inv_manage_by from related quotation's created_by
-     */
-    public function syncManagerFromQuotation(): bool
-    {
-        if ($this->quotation_id && $this->quotation) {
-            $this->inv_manage_by = $this->quotation->created_by;
-            $this->save();
-
-            return true;
-        }
-
-        return false;
     }
 
     /**

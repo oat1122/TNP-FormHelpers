@@ -23,7 +23,7 @@ import {
 } from "../../../../utils/accountingToast";
 import { resolveSignatureImageUrl } from "../../QuotationDetailDialog/utils/signatureImageUrl";
 
-const UPLOAD_ROLES = ["admin", "account", "sales"];
+const UPLOAD_ROLES = ["admin", "account", "sale"];
 const MAX_PDF_SAMPLE_IMAGES = 3;
 
 /**
@@ -34,7 +34,7 @@ const MAX_PDF_SAMPLE_IMAGES = 3;
  *  2. รูปภาพตัวอย่าง — uploaded sample images + checkbox grid to pick max 3 for PDF
  *     (PDF template at quotation-master.blade.php filters `selected_for_pdf`)
  *
- * Role gate: admin / account / sales can upload (mirrors backend permission).
+ * Role gate: admin / account / sale can upload (mirrors backend permission).
  */
 const EvidenceSection = ({
   quotationId,
@@ -42,6 +42,7 @@ const EvidenceSection = ({
   sampleImages = [],
   currentUserRole,
   onUploaded,
+  readOnly = false,
 }) => {
   const [uploadSignatures, { isLoading: isUploadingSig }] = useUploadQuotationSignaturesMutation();
   const [uploadSampleImages, { isLoading: isUploadingSample }] =
@@ -49,7 +50,7 @@ const EvidenceSection = ({
   const [updateQuotation] = useUpdateQuotationMutation();
 
   const role = String(currentUserRole || "").toLowerCase();
-  const canUpload = !!quotationId && UPLOAD_ROLES.includes(role);
+  const canUpload = !readOnly && !!quotationId && UPLOAD_ROLES.includes(role);
 
   // Local state (initial-value-only — prop is the snapshot at dialog open).
   // Upload mutation responses + checkbox toggles update `localSamples` directly;
@@ -222,9 +223,9 @@ const EvidenceSection = ({
                   รองรับ JPG / PNG สูงสุด 5MB ต่อไฟล์
                 </Typography>
               </Box>
-            ) : (
+            ) : readOnly ? null : (
               <Typography variant="caption" color="text.secondary">
-                ไม่มีสิทธิ์อัปโหลด — เฉพาะ admin / account / sales
+                ไม่มีสิทธิ์อัปโหลด — เฉพาะ admin / account / sale
               </Typography>
             )}
           </Box>
@@ -326,56 +327,58 @@ const EvidenceSection = ({
                   })}
                 </Grid>
 
-                {/* PDF selection picker */}
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    เลือกรูปแสดงบน PDF (สูงสุด {MAX_PDF_SAMPLE_IMAGES} รูป)
-                  </Typography>
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-                    {localSamples.map((img) => {
-                      const value = img.filename || "";
-                      const src =
-                        img?.url || resolveSignatureImageUrl(img, apiConfig.baseUrl || "");
-                      const checked = selectedForPdf.has(value);
-                      return (
-                        <Box
-                          key={value || src}
-                          component="label"
-                          sx={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 1,
-                            border: `${checked ? 2 : 1}px solid ${
-                              checked ? tokens.primary : tokens.divider
-                            }`,
-                            p: 0.75,
-                            borderRadius: 1,
-                            cursor: canUpload ? "pointer" : "default",
-                            userSelect: "none",
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={!canUpload}
-                            onChange={() => handleToggleSamplePdf(value)}
-                            style={{ margin: 0 }}
-                          />
-                          <img
-                            src={src}
-                            alt="sample"
-                            style={{
-                              width: 50,
-                              height: 50,
-                              objectFit: "cover",
-                              display: "block",
+                {/* PDF selection picker — hidden in read-only mode */}
+                {!readOnly && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      เลือกรูปแสดงบน PDF (สูงสุด {MAX_PDF_SAMPLE_IMAGES} รูป)
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
+                      {localSamples.map((img) => {
+                        const value = img.filename || "";
+                        const src =
+                          img?.url || resolveSignatureImageUrl(img, apiConfig.baseUrl || "");
+                        const checked = selectedForPdf.has(value);
+                        return (
+                          <Box
+                            key={value || src}
+                            component="label"
+                            sx={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 1,
+                              border: `${checked ? 2 : 1}px solid ${
+                                checked ? tokens.primary : tokens.divider
+                              }`,
+                              p: 0.75,
+                              borderRadius: 1,
+                              cursor: canUpload ? "pointer" : "default",
+                              userSelect: "none",
                             }}
-                          />
-                        </Box>
-                      );
-                    })}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={!canUpload}
+                              onChange={() => handleToggleSamplePdf(value)}
+                              style={{ margin: 0 }}
+                            />
+                            <img
+                              src={src}
+                              alt="sample"
+                              style={{
+                                width: 50,
+                                height: 50,
+                                objectFit: "cover",
+                                display: "block",
+                              }}
+                            />
+                          </Box>
+                        );
+                      })}
+                    </Box>
                   </Box>
-                </Box>
+                )}
               </>
             )}
           </Box>

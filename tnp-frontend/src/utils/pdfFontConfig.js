@@ -30,15 +30,14 @@ Font.register({
 // Hyphenation callback — Thai text has no spaces, so let @react-pdf/renderer
 // break Thai "words" at every character. Keep Latin/digit tokens intact so
 // English words don't split in the middle.
-const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
-Font.registerHyphenationCallback((word) => {
-  if (!word || word.length <= 1) {
-    return [word];
-  }
-  if (THAI_CHAR_REGEX.test(word)) {
-    return Array.from(word);
-  }
-  return [word];
-});
+// Keep every word intact and rely on manual wrapping (see NotebookPDF
+// `wrapLongText`). The previous implementation split Thai strings
+// character-by-character via `Array.from(word)`, which let
+// @react-pdf/renderer break between a base consonant and its trailing
+// combining mark + final consonant. With `wrap={false}` on table rows the
+// last letter was being dropped \u2014 e.g. "\u0E08\u0E33\u0E01\u0E31\u0E14" rendered as "\u0E08\u0E33\u0E01\u0E31". Returning
+// the word as a single chunk lets the renderer treat each cluster
+// atomically and trust the explicit `\n` characters we insert for breaks.
+Font.registerHyphenationCallback((word) => [word]);
 
 export default Font;

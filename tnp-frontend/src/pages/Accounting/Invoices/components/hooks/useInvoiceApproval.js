@@ -102,7 +102,9 @@ export const useInvoiceApproval = (invoice) => {
         setLocalStatus(res?.data?.status || "approved");
       }
     } catch (e) {
-      console.error("Approve invoice failed", e);
+      if (import.meta.env.DEV) {
+        console.error("Approve invoice failed", e);
+      }
       throw e;
     } finally {
       setIsApproving(false);
@@ -122,7 +124,9 @@ export const useInvoiceApproval = (invoice) => {
         // ไม่ auto-submit หรือเปลี่ยนสถานะเมื่อสลับโหมด เพื่อให้ผู้ใช้กดอนุมัติเองในแต่ละโหมด
       }
     } catch (e) {
-      console.error("Failed to persist deposit display order", e);
+      if (import.meta.env.DEV) {
+        console.error("Failed to persist deposit display order", e);
+      }
       setDepositMode(previousMode); // revert on error
       throw e;
     }

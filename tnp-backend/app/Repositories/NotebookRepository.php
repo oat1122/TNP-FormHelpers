@@ -159,6 +159,39 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
             ->orderByDesc('created_at');
     }
 
+    public function getAllTabStats(array $filters, $user): array
+    {
+        $base = $this->newQuery()
+            ->visibleTo($user, 'all')
+            ->applySearch($filters['search'] ?? null)
+            ->filterDateRange(
+                $filters['start_date'] ?? null,
+                $filters['end_date'] ?? null,
+                $filters['date_filter_by'] ?? 'nb_date'
+            )
+            ->filterStatus($filters['status'] ?? null)
+            ->filterAction($filters['action'] ?? null)
+            ->filterEntryType($filters['entry_type'] ?? null)
+            ->filterManageBy(isset($filters['manage_by']) ? (int) $filters['manage_by'] : null);
+
+        $row = (clone $base)
+            ->selectRaw(
+                'COUNT(*) AS total_count,
+                SUM(CASE WHEN nb_workflow = ? AND nb_manage_by IS NOT NULL AND nb_is_fresh_queue = 0 THEN 1 ELSE 0 END) AS called_count,
+                SUM(CASE WHEN nb_workflow = ? AND nb_is_fresh_queue = 1 THEN 1 ELSE 0 END) AS pending_count,
+                SUM(CASE WHEN nb_converted_customer_id IS NOT NULL THEN 1 ELSE 0 END) AS converted_count',
+                [Notebook::WORKFLOW_LEAD_QUEUE, Notebook::WORKFLOW_LEAD_QUEUE]
+            )
+            ->first();
+
+        return [
+            'total' => (int) ($row->total_count ?? 0),
+            'called' => (int) ($row->called_count ?? 0),
+            'pending' => (int) ($row->pending_count ?? 0),
+            'converted' => (int) ($row->converted_count ?? 0),
+        ];
+    }
+
     protected function normalizeIncludes(array|string|null $includes): array
     {
         if (is_string($includes)) {

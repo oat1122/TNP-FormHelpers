@@ -156,8 +156,7 @@ class Quotation extends Model
         // Invalidate PDF cache when quotation is updated
         static::updated(function ($quotation) {
             try {
-                $cacheService = app(PdfCacheService::class);
-                $cacheService->invalidate('quotation', $quotation->id);
+                app(PdfCacheService::class)->invalidateAllForDocument($quotation);
                 Log::info('Quotation updated - PDF cache invalidated', ['quotation_id' => $quotation->id]);
             } catch (\Exception $e) {
                 Log::warning('Failed to invalidate PDF cache on quotation update: '.$e->getMessage());
@@ -167,8 +166,7 @@ class Quotation extends Model
         // Invalidate PDF cache when quotation is deleted
         static::deleted(function ($quotation) {
             try {
-                $cacheService = app(PdfCacheService::class);
-                $cacheService->invalidate('quotation', $quotation->id);
+                app(PdfCacheService::class)->invalidateAllForDocument($quotation);
                 Log::info('Quotation deleted - PDF cache invalidated', ['quotation_id' => $quotation->id]);
             } catch (\Exception $e) {
                 Log::warning('Failed to invalidate PDF cache on quotation delete: '.$e->getMessage());

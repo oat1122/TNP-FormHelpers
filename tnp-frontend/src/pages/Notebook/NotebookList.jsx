@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 
 import CustomerCareDialog from "./components/CustomerCareDialog";
+import NotebookAllTabStatsCard from "./components/NotebookAllTabStatsCard";
 import NotebookAssignDialog from "./components/NotebookAssignDialog";
 import NotebookDialog from "./components/NotebookDialog";
 import NotebookPersonalActivityDialog from "./components/NotebookPersonalActivityDialog";
@@ -58,6 +59,9 @@ const NotebookList = () => {
     listError,
     isLoading,
     isFetching,
+    allTabStats,
+    isAllTabStatsFetching,
+    allTabStatsError,
     isBulkAssignEnabled,
     selectedQueueIds,
     refetch,
@@ -131,6 +135,14 @@ const NotebookList = () => {
           onViewModeChange={setViewMode}
           isLoading={isLoading}
         />
+
+        {scopeFilter === "all" ? (
+          <NotebookAllTabStatsCard
+            stats={allTabStats}
+            isLoading={isAllTabStatsFetching}
+            isError={Boolean(allTabStatsError)}
+          />
+        ) : null}
 
         <NotebookTable
           rows={rows}

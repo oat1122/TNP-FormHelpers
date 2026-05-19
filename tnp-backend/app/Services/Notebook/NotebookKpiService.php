@@ -50,6 +50,11 @@ class NotebookKpiService
         ];
     }
 
+    public function getAllTabStats(array $filters, $user): array
+    {
+        return $this->notebookRepository->getAllTabStats($filters, $user);
+    }
+
     public function getDetailsData(string $period, ?string $startDate, ?string $endDate, string $sourceFilter, ?int $requestedUserId, $user, ?string $nbStatus = 'all'): array
     {
         $dateRange = $this->getDateRange($period, $startDate, $endDate);

@@ -38,7 +38,18 @@ const fmtTHB = (n) => {
   return `฿${num.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`;
 };
 
-const InvoiceSidePanel = ({ side, sideData, onChange, invoice, warnings = [] }) => {
+const InvoiceSidePanel = ({
+  side,
+  sideData,
+  onChange,
+  invoice,
+  warnings = [],
+  readOnly = false,
+}) => {
+  const handleChange = (key, value) => {
+    if (readOnly) return;
+    onChange?.(key, value);
+  };
   const isBefore = side === "before";
   const numberKey = isBefore ? "number_before" : "number_after";
   const dueDateKey = isBefore ? "due_date_before" : "due_date_after";
@@ -95,9 +106,10 @@ const InvoiceSidePanel = ({ side, sideData, onChange, invoice, warnings = [] }) 
           label="ครบกำหนด"
           type="date"
           value={sideData?.[dueDateKey] || ""}
-          onChange={(e) => onChange(dueDateKey, e.target.value)}
+          onChange={(e) => handleChange(dueDateKey, e.target.value)}
           fullWidth
           size="small"
+          disabled={readOnly}
           InputLabelProps={{ shrink: true }}
           helperText="วันที่ครบกำหนดสำหรับ side นี้ — ว่างได้ (ใช้ค่าจาก invoice หลัก)"
         />
@@ -107,9 +119,10 @@ const InvoiceSidePanel = ({ side, sideData, onChange, invoice, warnings = [] }) 
           label={`ยอดของ side นี้ (${sideLabel})`}
           type="number"
           value={sideData?.[paidAmountKey] ?? 0}
-          onChange={(e) => onChange(paidAmountKey, e.target.value)}
+          onChange={(e) => handleChange(paidAmountKey, e.target.value)}
           fullWidth
           size="small"
+          disabled={readOnly}
           inputProps={{ min: 0, step: 0.01 }}
           InputProps={{ endAdornment: <Typography variant="body2">บาท</Typography> }}
           helperText={`ค่าเริ่มต้น: ${fmtTHB(derivedAmount)} (จาก invoice หลัก) — แก้ไขได้ ระบบจะเตือนถ้า ก่อน + หลัง ≠ ยอดรวม`}
@@ -120,12 +133,13 @@ const InvoiceSidePanel = ({ side, sideData, onChange, invoice, warnings = [] }) 
           <TextField
             label="หมายเหตุเฉพาะ side นี้"
             value={sideData?.[notesKey] || ""}
-            onChange={(e) => onChange(notesKey, e.target.value)}
+            onChange={(e) => handleChange(notesKey, e.target.value)}
             fullWidth
             multiline
             minRows={3}
             maxRows={6}
             size="small"
+            disabled={readOnly}
             inputProps={{ maxLength: 5000 }}
             placeholder="ว่างได้ (ใช้หมายเหตุจาก invoice หลัก)"
           />

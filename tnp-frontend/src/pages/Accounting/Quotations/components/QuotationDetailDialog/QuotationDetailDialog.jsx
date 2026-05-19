@@ -213,8 +213,6 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
           <ActionBar
             isEditing={isEditing}
             isSaving={saveFlow.isSaving}
-            isGeneratingPdf={imageManager.isGeneratingPdf}
-            onPreviewPdf={() => imageManager.handlePreviewPdf(q?.status)}
             onCancelEdit={() => setIsEditing(false)}
             onSave={handleSave}
             onClose={onClose}

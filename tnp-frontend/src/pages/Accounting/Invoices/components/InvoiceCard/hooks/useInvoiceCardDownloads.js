@@ -76,8 +76,8 @@ export const useInvoiceCardDownloads = (invoice) => {
       const data = await response.json();
       const downloadUrl = data?.zip_url || data?.pdf_url;
       if (downloadUrl) {
-        window.open(downloadUrl, "_blank");
-      } else {
+        window.open(downloadUrl, "_blank", "noopener,noreferrer");
+      } else if (import.meta.env.DEV) {
         console.error("No download URL in response", data);
       }
     },
@@ -90,7 +90,9 @@ export const useInvoiceCardDownloads = (invoice) => {
       try {
         await downloadPdf({ kind: "tax", headerTypes, mode: taxMode });
       } catch (e) {
-        console.error("Tax Invoice download failed", e);
+        if (import.meta.env.DEV) {
+          console.error("Tax Invoice download failed", e);
+        }
       }
     },
     [closeTax, downloadPdf, taxMode]
@@ -102,7 +104,9 @@ export const useInvoiceCardDownloads = (invoice) => {
       try {
         await downloadPdf({ kind: "receipt", headerTypes, mode: receiptMode });
       } catch (e) {
-        console.error("Receipt download failed", e);
+        if (import.meta.env.DEV) {
+          console.error("Receipt download failed", e);
+        }
       }
     },
     [closeReceipt, downloadPdf, receiptMode]
@@ -114,7 +118,9 @@ export const useInvoiceCardDownloads = (invoice) => {
       try {
         await downloadPdf({ kind: "taxFull", headerTypes, mode: "full" });
       } catch (e) {
-        console.error("Tax Invoice Full download failed", e);
+        if (import.meta.env.DEV) {
+          console.error("Tax Invoice Full download failed", e);
+        }
       }
     },
     [closeTaxFull, downloadPdf]
@@ -126,7 +132,9 @@ export const useInvoiceCardDownloads = (invoice) => {
       try {
         await downloadPdf({ kind: "receiptFull", headerTypes, mode: "full" });
       } catch (e) {
-        console.error("Receipt Full download failed", e);
+        if (import.meta.env.DEV) {
+          console.error("Receipt Full download failed", e);
+        }
       }
     },
     [closeReceiptFull, downloadPdf]

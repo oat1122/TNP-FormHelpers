@@ -4,6 +4,7 @@ import {
   Edit as EditIcon,
   Payments as PaymentsIcon,
   Person as PersonIcon,
+  Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 import { Box, Chip, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 
@@ -36,6 +37,13 @@ const formatTHB = (n) => {
 const HEADER_TEXT = {
   duplicate: { topLabel: "สร้างใบเสนอราคา", subtitle: "สำเนาฉบับใหม่" },
   edit: { topLabel: "แก้ไขใบเสนอราคา", subtitle: null /* uses quotation number */ },
+  view: { topLabel: "รายละเอียดใบเสนอราคา", subtitle: null /* uses quotation number */ },
+};
+
+const MODE_ICONS = {
+  duplicate: ContentCopyIcon,
+  edit: EditIcon,
+  view: VisibilityIcon,
 };
 
 const DialogHeader = ({
@@ -46,12 +54,13 @@ const DialogHeader = ({
   onClose,
 }) => {
   const isEdit = mode === "edit";
+  const isView = mode === "view";
+  const usesQuotationNumber = isEdit || isView;
   const sourceNumber = sourceQuotation?.number || sourceQuotation?.quotation_number;
   const { topLabel } = HEADER_TEXT[mode] || HEADER_TEXT.duplicate;
-  // In edit mode, subtitle = the quotation number being edited.
-  // In duplicate mode, subtitle = "สำเนาฉบับใหม่".
-  const subtitleText = isEdit ? sourceNumber || "-" : HEADER_TEXT.duplicate.subtitle;
-  const Icon = isEdit ? EditIcon : ContentCopyIcon;
+  // Edit/view subtitle = quotation number. Duplicate subtitle = "สำเนาฉบับใหม่".
+  const subtitleText = usesQuotationNumber ? sourceNumber || "-" : HEADER_TEXT.duplicate.subtitle;
+  const Icon = MODE_ICONS[mode] || ContentCopyIcon;
 
   return (
     <Box
@@ -94,15 +103,15 @@ const DialogHeader = ({
               fontWeight: 700,
               lineHeight: 1.2,
               fontSize: "1.05rem",
-              fontFamily: isEdit ? "monospace" : undefined,
+              fontFamily: usesQuotationNumber ? "monospace" : undefined,
             }}
           >
             {subtitleText}
           </Typography>
         </Box>
 
-        {/* Source ref chip — duplicate mode only (hidden in edit per user spec) */}
-        {!isEdit && sourceNumber && (
+        {/* Source ref chip — duplicate mode only (hidden in edit/view) */}
+        {!usesQuotationNumber && sourceNumber && (
           <Chip
             label={`จาก ${sourceNumber}`}
             size="small"

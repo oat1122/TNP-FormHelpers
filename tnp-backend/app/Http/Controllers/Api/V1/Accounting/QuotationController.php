@@ -132,7 +132,6 @@ class QuotationController extends Controller
             $data = $request->validated();
             $updatedBy = AccountingHelper::getCurrentUserId();
             $user = auth()->user();
-            $userRole = $user->role;
 
             // Load quotation with invoices to check permissions
             $quotation = Quotation::with('invoices:id,number,status,quotation_id')->findOrFail($id);
@@ -150,31 +149,12 @@ class QuotationController extends Controller
                 ], 403);
             }
 
-            // If quotation has invoices and user is Admin/Manager, require sync confirmation
-            // Note: legacy code used 'account' which never existed in users.role enum (M1.6) —
-            // treated as typo for 'manager', consistent with Phase 3 D1.
-            if ($permissionCheck['invoice_count'] > 0 && in_array($userRole, ['admin', 'manager'], true)) {
-                $confirmSync = $request->input('confirm_sync', false);
-
-                if (! $confirmSync) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'ต้องยืนยันการซิงค์ข้อมูลกับใบแจ้งหนี้',
-                        'requires_confirmation' => true,
-                        'affected_invoices' => $quotation->invoices->map(function ($inv) {
-                            return [
-                                'id' => $inv->id,
-                                'number' => $inv->number,
-                                'status' => $inv->status,
-                            ];
-                        }),
-                        'invoice_count' => $quotation->invoices->count(),
-                    ], 422);
-                }
-            }
-
-            // Perform update with optional sync
-            $result = $this->quotationService->update($id, $data, $updatedBy, $request->input('confirm_sync', false));
+            // Auto-sync: every edit propagates to linked invoices via SyncService
+            // (Quotation\ManagementService::update). The new flow requires the user
+            // to revert status to draft via the Undo button before editing, which
+            // already serves as the intent confirmation — so a separate
+            // confirm-sync prompt would be redundant.
+            $result = $this->quotationService->update($id, $data, $updatedBy, true);
 
             // Prepare response with sync info
             $response = [

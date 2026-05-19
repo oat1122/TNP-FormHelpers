@@ -32,47 +32,50 @@ class AuthServiceProvider extends ServiceProvider
 
     private function defineQuotationGates(): void
     {
-        $managerOrSale = [UserRole::MANAGER, UserRole::SALE];
+        // account = manager-tier (ยกเว้น admin-only) → ขยายทุก gate ที่เคยอนุญาต manager
+        $accountingTeam = [UserRole::MANAGER, UserRole::ACCOUNT, UserRole::SALE];
+        $managerOrAccount = [UserRole::MANAGER, UserRole::ACCOUNT];
 
-        Gate::define('quotation.create', fn ($u) => in_array($u->role, $managerOrSale, true));
-        Gate::define('quotation.update', fn ($u) => in_array($u->role, $managerOrSale, true));
-        Gate::define('quotation.approve', fn ($u) => $u->role === UserRole::MANAGER);
-        Gate::define('quotation.reject', fn ($u) => $u->role === UserRole::MANAGER);
-        Gate::define('quotation.markSent', fn ($u) => in_array($u->role, $managerOrSale, true));
-        Gate::define('quotation.markCompleted', fn ($u) => in_array($u->role, $managerOrSale, true));
-        Gate::define('quotation.sendEmail', fn ($u) => in_array($u->role, $managerOrSale, true));
-        Gate::define('quotation.uploadEvidence', fn ($u) => in_array($u->role, $managerOrSale, true));
-        Gate::define('quotation.uploadSampleImages', fn ($u) => in_array($u->role, $managerOrSale, true));
-        Gate::define('quotation.uploadSignatures', fn ($u) => $u->role === UserRole::SALE);
-        Gate::define('quotation.bulkAutofill', fn ($u) => in_array($u->role, $managerOrSale, true));
+        Gate::define('quotation.create', fn ($u) => in_array($u->role, $accountingTeam, true));
+        Gate::define('quotation.update', fn ($u) => in_array($u->role, $accountingTeam, true));
+        Gate::define('quotation.approve', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('quotation.reject', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('quotation.markSent', fn ($u) => in_array($u->role, $accountingTeam, true));
+        Gate::define('quotation.markCompleted', fn ($u) => in_array($u->role, $accountingTeam, true));
+        Gate::define('quotation.sendEmail', fn ($u) => in_array($u->role, $accountingTeam, true));
+        Gate::define('quotation.uploadEvidence', fn ($u) => in_array($u->role, $accountingTeam, true));
+        Gate::define('quotation.uploadSampleImages', fn ($u) => in_array($u->role, $accountingTeam, true));
+        Gate::define('quotation.uploadSignatures', fn ($u) => in_array($u->role, [UserRole::SALE, UserRole::ACCOUNT], true));
+        Gate::define('quotation.bulkAutofill', fn ($u) => in_array($u->role, $accountingTeam, true));
     }
 
     private function defineInvoiceGates(): void
     {
-        $managerOrSale = [UserRole::MANAGER, UserRole::SALE];
+        $accountingTeam = [UserRole::MANAGER, UserRole::ACCOUNT, UserRole::SALE];
+        $managerOrAccount = [UserRole::MANAGER, UserRole::ACCOUNT];
 
-        Gate::define('invoice.create', fn ($u) => in_array($u->role, $managerOrSale, true));
-        Gate::define('invoice.update', fn ($u) => in_array($u->role, $managerOrSale, true));
-        Gate::define('invoice.approve', fn ($u) => $u->role === UserRole::MANAGER);
-        Gate::define('invoice.reject', fn ($u) => $u->role === UserRole::MANAGER);
-        Gate::define('invoice.revertToDraft', fn ($u) => $u->role === UserRole::MANAGER);
-        Gate::define('invoice.submitAfterDeposit', fn ($u) => in_array($u->role, $managerOrSale, true));
-        Gate::define('invoice.uploadEvidence', fn ($u) => in_array($u->role, $managerOrSale, true));
-        Gate::define('invoice.destroy', fn ($u) => $u->role === UserRole::MANAGER);
-        Gate::define('invoice.recordPayment', fn ($u) => $u->role === UserRole::MANAGER);
-        Gate::define('invoice.sendReminder', fn ($u) => in_array($u->role, $managerOrSale, true));
-        Gate::define('invoice.sendToCustomer', fn ($u) => in_array($u->role, $managerOrSale, true));
+        Gate::define('invoice.create', fn ($u) => in_array($u->role, $accountingTeam, true));
+        Gate::define('invoice.update', fn ($u) => in_array($u->role, $accountingTeam, true));
+        Gate::define('invoice.approve', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('invoice.reject', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('invoice.revertToDraft', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('invoice.submitAfterDeposit', fn ($u) => in_array($u->role, $accountingTeam, true));
+        Gate::define('invoice.uploadEvidence', fn ($u) => in_array($u->role, $accountingTeam, true));
+        Gate::define('invoice.destroy', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('invoice.recordPayment', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('invoice.sendReminder', fn ($u) => in_array($u->role, $accountingTeam, true));
+        Gate::define('invoice.sendToCustomer', fn ($u) => in_array($u->role, $accountingTeam, true));
     }
 
     private function defineReceiptGates(): void
     {
-        // Note: ก่อนหน้านี้ controller ใช้ ['admin', 'account'] แต่ 'account' ไม่อยู่ใน enum
-        // (silent broken). Phase 3 D1: treat เป็น typo → ใช้ [admin, manager]
-        Gate::define('receipt.create', fn ($u) => $u->role === UserRole::MANAGER);
-        Gate::define('receipt.update', fn ($u) => $u->role === UserRole::MANAGER);
-        Gate::define('receipt.approve', fn ($u) => $u->role === UserRole::MANAGER);
-        Gate::define('receipt.reject', fn ($u) => $u->role === UserRole::MANAGER);
-        Gate::define('receipt.uploadEvidence', fn ($u) => $u->role === UserRole::MANAGER);
-        Gate::define('receipt.calculateVat', fn ($u) => in_array($u->role, [UserRole::MANAGER, UserRole::SALE], true));
+        $managerOrAccount = [UserRole::MANAGER, UserRole::ACCOUNT];
+
+        Gate::define('receipt.create', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('receipt.update', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('receipt.approve', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('receipt.reject', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('receipt.uploadEvidence', fn ($u) => in_array($u->role, $managerOrAccount, true));
+        Gate::define('receipt.calculateVat', fn ($u) => in_array($u->role, [UserRole::MANAGER, UserRole::ACCOUNT, UserRole::SALE], true));
     }
 }

@@ -23,7 +23,7 @@ import {
   Typography,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import moment from "moment";
+import dayjs from "dayjs";
 import React from "react";
 
 import { useGetPricingRequestNotesQuery } from "../../../../features/Accounting/accountingApi";
@@ -87,7 +87,7 @@ function sortNewestFirst(arr) {
 function NoteItem({ type, note }) {
   const author = note?.created_by_name || note?.created_name || note?.user_name || "-";
   const when = note?.prn_created_date
-    ? moment(note.prn_created_date).format("DD/MM HH:mm")
+    ? dayjs(note.prn_created_date).format("DD/MM HH:mm")
     : note?.formatted_date || note?.created_at_display || "";
 
   const typeLabel = type === "price" ? "price" : "note sales";

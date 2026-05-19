@@ -15,6 +15,7 @@ import { headCellSx } from "./utils/tableStyles";
 const InvoiceTableView = ({
   data = [],
   onViewDetail,
+  onEdit,
   onPreviewPDF,
   onGoToQuotation,
   onActionSuccess,
@@ -80,6 +81,7 @@ const InvoiceTableView = ({
               idx={idx}
               getCompanyName={getCompanyName}
               onViewDetail={onViewDetail}
+              onEdit={onEdit}
               onPreviewPDF={onPreviewPDF}
               onGoToQuotation={onGoToQuotation}
               onActionSuccess={onActionSuccess}

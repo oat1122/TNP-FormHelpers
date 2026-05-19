@@ -19,6 +19,7 @@ const QuotationTableView = ({
   onDuplicate,
   onEdit,
   canEditQuotations = false,
+  currentUserRole,
   onCreateInvoice,
   onGoToInvoice,
   onActionSuccess,
@@ -88,6 +89,7 @@ const QuotationTableView = ({
               onDuplicate={onDuplicate}
               onEdit={onEdit}
               canEditQuotations={canEditQuotations}
+              currentUserRole={currentUserRole}
               onCreateInvoice={onCreateInvoice}
               onGoToInvoice={onGoToInvoice}
               onActionSuccess={onActionSuccess}

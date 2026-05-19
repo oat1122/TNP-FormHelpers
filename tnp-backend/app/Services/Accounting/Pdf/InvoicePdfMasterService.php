@@ -78,15 +78,15 @@ class InvoicePdfMasterService extends BasePdfMasterService
         $mpdf->SetHTMLHeader($headerHtml);
         $mpdf->SetHTMLFooter($footerHtml); // ✨ คืนค่า: แสดงเลขหน้าในทุกหน้า
 
-        // Watermark logic (คงเดิม)
+        // Watermark logic:
+        // - Explicit preview request (isFinal=false + showWatermark option) → watermark
+        // - Both sides still draft → watermark (invoice not approved on any side yet)
+        // - Otherwise → clean PDF. Per-side draft (e.g. status_after=draft while
+        //   status_before=approved) intentionally does NOT trigger the watermark so
+        //   users can download both side variants once the invoice is approved.
         $bothDraft = (strtolower($invoice->status_before ?? '') === 'draft')
             && (strtolower($invoice->status_after ?? '') === 'draft');
-        $mode = strtolower($data['options']['deposit_mode'] ?? ($invoice->deposit_display_order ?? 'before'));
-        $activeSideStatus = $mode === 'after'
-            ? strtolower($invoice->status_after ?? '')
-            : strtolower($invoice->status_before ?? '');
-        $activeDraft = ($activeSideStatus === 'draft');
-        $shouldWatermark = (! $isFinal && ($data['options']['showWatermark'] ?? true)) || $bothDraft || $activeDraft;
+        $shouldWatermark = (! $isFinal && ($data['options']['showWatermark'] ?? true)) || $bothDraft;
 
         if ($shouldWatermark) {
             $mpdf->SetWatermarkText('PREVIEW', 0.1);
@@ -97,14 +97,7 @@ class InvoicePdfMasterService extends BasePdfMasterService
     protected function buildViewData(object $invoice, array $options = []): array
     {
         /** @var Invoice $i */
-        \Log::info("🔍 PDF buildViewData - Start for Invoice ID: {$invoice->id}, Type: {$invoice->type}");
-
         $i = $invoice->loadMissing(['company', 'customer', 'quotation', 'quotation.items', 'items', 'creator', 'manager', 'referenceInvoice']);
-
-        // Log relationship loading status
-        $itemsLoaded = $i->relationLoaded('items');
-        $itemCount = $itemsLoaded ? $i->items->count() : 'NOT LOADED';
-        \Log::info('🔍 PDF buildViewData - Items relationship loaded: '.($itemsLoaded ? 'YES' : 'NO').", Count: {$itemCount}");
 
         // Allow runtime override of document header type (ไม่บันทึกลง DB)
         if (! empty($options['document_header_type'])) {
@@ -112,28 +105,16 @@ class InvoicePdfMasterService extends BasePdfMasterService
         }
 
         $customer = CustomerInfoExtractor::fromInvoice($i);
-
-        \Log::info('🔍 PDF buildViewData - Calling getInvoiceItems...');
         $items = $this->getInvoiceItems($i);
-        \Log::info('🔍 PDF buildViewData - getInvoiceItems returned '.count($items).' items');
-
-        if (count($items) > 0) {
-            \Log::info('🔍 PDF buildViewData - First item: '.json_encode($items[0]));
-        }
-
         $summary = $this->buildFinancialSummary($i);
 
         // สร้างข้อมูล groups สำหรับ deposit-after mode
         $groups = $this->groupInvoiceItems($i);
-        \Log::info('🔍 PDF buildViewData - groupInvoiceItems returned '.count($groups).' groups');
 
         $isFinal = in_array($i->status, ['approved', 'sent', 'completed', 'partial_paid', 'fully_paid'], true);
 
         // ✨ NEW: Get document metadata (number, reference) using helper method
         $metadata = $this->getDocumentMetadata($i, 'invoice', $options);
-
-        \Log::info('🔍 PDF buildViewData - Final data: items='.count($items).', groups='.count($groups));
-        \Log::info('🔍 PDF buildViewData - Document metadata: '.json_encode($metadata));
 
         // C2: build invoiceItems for PDF body table — replaces inline @php in invoice-master.blade.php
         $invoiceItems = $this->calculator->buildPdfItemsForType($i, $items);
@@ -211,25 +192,14 @@ class InvoicePdfMasterService extends BasePdfMasterService
      */
     protected function getInvoiceItems(Invoice $invoice): array
     {
-        \Log::info("🔍 getInvoiceItems - Invoice ID: {$invoice->id}");
-
         // ตรวจสอบให้แน่ใจว่า relationship 'items' ถูกโหลดแล้ว
         // การเรียก $invoice->items จะพยายามโหลดถ้ายังไม่ได้โหลด
         $invoiceItems = $invoice->items;
 
-        \Log::info('🔍 getInvoiceItems - Retrieved items, count: '.($invoiceItems ? $invoiceItems->count() : 'NULL'));
-
         if ($invoiceItems && $invoiceItems->count() > 0) {
-            // ใช้ข้อมูลจาก invoice_items เท่านั้น
-            $result = $invoiceItems->sortBy('sequence_order')->values()->toArray();
-            \Log::info('🔍 getInvoiceItems - Returning '.count($result).' items from invoice_items');
-
-            return $result;
+            // ใช้ข้อมูลจาก invoice_items เท่านั้น ไม่ fallback ไปหา quotation->items
+            return $invoiceItems->sortBy('sequence_order')->values()->toArray();
         }
-
-        // ไม่ต้อง fallback ไปหา quotation->items
-        // ถ้าไม่มี invoice_items ให้คืนค่า array ว่าง
-        \Log::warning('⚠️ getInvoiceItems - No invoice_items found, returning empty array');
 
         return [];
     }

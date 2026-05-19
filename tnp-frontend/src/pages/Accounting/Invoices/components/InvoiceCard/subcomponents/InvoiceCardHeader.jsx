@@ -1,9 +1,25 @@
 import DescriptionIcon from "@mui/icons-material/Description";
+import SyncIcon from "@mui/icons-material/Sync";
 import { Box, Chip, Stack, Tooltip, Typography } from "@mui/material";
 
+import { AccountingCountChip, AccountingStatusChip } from "../../../../shared/styles";
 import { typeLabels, truncateText } from "../../utils/invoiceFormatters";
 import { getDisplayInvoiceNumber } from "../../utils/invoiceLogic";
-import { AccountingCountChip, AccountingStatusChip } from "../../../../shared/styles";
+
+const formatSyncTimestamp = (value) => {
+  if (!value) return null;
+  try {
+    return new Date(value).toLocaleString("th-TH", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return null;
+  }
+};
 
 const InvoiceCardHeader = ({ invoice, depositMode, invoiceStatus, depositInfo }) => {
   const customerSnapshot = (() => {
@@ -30,6 +46,10 @@ const InvoiceCardHeader = ({ invoice, depositMode, invoiceStatus, depositInfo })
   const cleanCompanyName = rawCompanyName.replace(/(\d+)\s+\1/g, "$1");
   const truncatedCompanyName = truncateText(cleanCompanyName, 35);
   const displayNumber = getDisplayInvoiceNumber(invoice, depositMode);
+
+  // Sync indicator: stamped by backend SyncService whenever a parent quotation
+  // update propagates to this invoice (see Quotation\SyncService).
+  const lastSyncedLabel = formatSyncTimestamp(invoice?.last_synced_at);
 
   return (
     <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
@@ -72,6 +92,19 @@ const InvoiceCardHeader = ({ invoice, depositMode, invoiceStatus, depositInfo })
           </Stack>
 
           <Stack direction="row" spacing={1} alignItems="center">
+            {lastSyncedLabel && (
+              <Tooltip title={`ซิงค์ข้อมูลจากใบเสนอราคาล่าสุดเมื่อ ${lastSyncedLabel}`} arrow>
+                <Chip
+                  size="small"
+                  color="info"
+                  variant="outlined"
+                  icon={<SyncIcon sx={{ fontSize: "0.9rem" }} />}
+                  label="ซิงค์แล้ว"
+                  sx={{ fontSize: "0.75rem" }}
+                  aria-label={`ซิงค์ข้อมูลกับใบเสนอราคาล่าสุดเมื่อ ${lastSyncedLabel}`}
+                />
+              </Tooltip>
+            )}
             {depositInfo && (
               <Chip
                 size="small"

@@ -38,8 +38,6 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
         $data['referenceNo'] = $metadata['referenceNo'];  // Reference number
         $data['mode'] = $metadata['mode'];                // before/after/full
 
-        \Log::info('🔍 ReceiptPDF buildViewData - Override metadata: '.json_encode($metadata));
-
         return $data;
     }
 

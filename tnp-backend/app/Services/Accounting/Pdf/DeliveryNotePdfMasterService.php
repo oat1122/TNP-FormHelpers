@@ -35,13 +35,17 @@ class DeliveryNotePdfMasterService extends BasePdfMasterService
 
     protected function cssFiles(): array
     {
+        // Note: invoice-header.css intentionally NOT loaded — its
+        // `.items-table.slim col.w-*` rules use !important to size invoice's
+        // 4-col layout (desc/unit-price/qty/total), which clobbered
+        // delivery-note's 3-col layout (desc/qty/unit). The equivalent rules
+        // for delivery-note (doc-title brand color + correct col widths) live
+        // in delivery-note-master.css.
         return [
             resource_path('views/accounting/pdf/shared/pdf-shared-base.css'),
             resource_path('views/accounting/pdf/shared/pdf-doc-master.css'),
             resource_path('views/accounting/pdf/delivery-note/delivery-note-master.css'),
             resource_path('views/pdf/partials/_doc-header-shared.css'),
-            // ใช้ header CSS ของ invoice (เก็บ items-table.slim cross-domain rules + .doc-title color)
-            resource_path('views/pdf/partials/invoice-header.css'),
         ];
     }
 
@@ -128,6 +132,7 @@ class DeliveryNotePdfMasterService extends BasePdfMasterService
             $groups[$key]['rows'][] = [
                 'size' => $item->size ?? '-',
                 'quantity' => (float) ($item->delivered_quantity ?? 0),
+                'description' => $item->item_description ?? null,
             ];
         }
 

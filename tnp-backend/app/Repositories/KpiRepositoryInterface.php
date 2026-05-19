@@ -69,20 +69,18 @@ interface KpiRepositoryInterface extends BaseRepositoryInterface
      * @param string $sourceFilter
      * @param int|null $targetUserId
      * @param array<string, \Carbon\Carbon> $dateRange
-     * @param bool $useSnapshot Use recall_status_histories snapshot for past periods
      * @return array<string, int>
      */
-    public function getRecallStats(string $sourceFilter, ?int $targetUserId, array $dateRange, bool $useSnapshot = false): array;
+    public function getRecallStats(string $sourceFilter, ?int $targetUserId, array $dateRange): array;
 
     /**
      * Get Recall Statistics By User (Sales)
      *
      * @param string $sourceFilter
      * @param array<string, \Carbon\Carbon> $dateRange
-     * @param bool $useSnapshot Use recall_status_histories snapshot for past periods
      * @return array<int, mixed>
      */
-    public function getRecallStatsByUser(string $sourceFilter, array $dateRange, bool $useSnapshot = false): array;
+    public function getRecallStatsByUser(string $sourceFilter, array $dateRange): array;
 
     /**
      * Get current period comparison (vs previous period)
@@ -113,20 +111,9 @@ interface KpiRepositoryInterface extends BaseRepositoryInterface
      * @param int|null $targetUserId
      * @param array<string, \Carbon\Carbon> $dateRange
      * @param int $perPage
-     * @param bool $useSnapshot Use recall_status_histories snapshot for past periods
      * @return \Illuminate\Pagination\LengthAwarePaginator<\App\Models\MasterCustomer>
      */
-    public function getPaginatedRecallDetails(string $type, string $sourceFilter, ?int $targetUserId, array $dateRange, int $perPage, bool $useSnapshot = false);
-
-    /**
-     * Get historical recall status for trend analysis and drill-down
-     *
-     * @param string $month
-     * @param string $sourceFilter
-     * @param int|null $targetUserId
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\RecallStatusHistory>
-     */
-    public function getRecallHistory(string $month, string $sourceFilter, ?int $targetUserId);
+    public function getPaginatedRecallDetails(string $type, string $sourceFilter, ?int $targetUserId, array $dateRange, int $perPage);
 
     /**
      * Export KPI data to collection

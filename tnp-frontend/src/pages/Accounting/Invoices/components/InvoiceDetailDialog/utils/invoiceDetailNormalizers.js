@@ -92,9 +92,13 @@ export const normalizeItems = (invoice) => {
       total: (item.quantity || 0) * (item.unit_price || 0),
     });
 
-    if (item.size && item.quantity > 0) {
+    // Include every row with quantity > 0 — keep size-less rows (e.g. "ค่าบล็อค",
+    // setup fees) visible after a sync from quotation. Filtering by `item.size`
+    // hides legitimate quotation line items, so the invoice editor would show a
+    // smaller total than the parent quotation.
+    if ((item.quantity || 0) > 0 || (item.unit_price || 0) > 0) {
       group.sizeRows.push({
-        size: item.size,
+        size: item.size || "",
         quantity: item.quantity || 0,
         unitPrice: item.unit_price || 0,
         notes: item.notes || "",

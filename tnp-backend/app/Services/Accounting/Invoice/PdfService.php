@@ -44,8 +44,6 @@ class PdfService
                 'referenceInvoice',
             ])->findOrFail($invoiceId);
 
-            Log::info("🔍 generatePdf: Invoice ID {$invoiceId} loaded. Items count: ".($invoice->relationLoaded('items') ? $invoice->items->count() : 'NOT LOADED'));
-
             $isFinal = in_array($invoice->status, ['approved', 'sent', 'partial_paid', 'fully_paid', 'completed']);
 
             try {
@@ -160,8 +158,6 @@ class PdfService
                 'referenceInvoice',
             ])->findOrFail($invoiceId);
 
-            Log::info("🔍 generatePdfBundle: Invoice ID {$invoiceId} loaded. Items count: ".($invoice->relationLoaded('items') ? $invoice->items->count() : 'NOT LOADED'));
-
             // Single-header → reuse generatePdf().
             if (empty($headerTypes) || count($headerTypes) === 1) {
                 $singleType = ! empty($headerTypes) ? $headerTypes[0] : null;
@@ -191,7 +187,6 @@ class PdfService
                 }
 
                 $localOptions = array_merge($options, ['document_header_type' => $headerType]);
-                Log::info("🔍 generatePdfBundle (Multi-Loop): Processing header '{$headerType}'.");
 
                 $pdfData = $this->pdfMasterService->generatePdf($invoice, $localOptions);
 

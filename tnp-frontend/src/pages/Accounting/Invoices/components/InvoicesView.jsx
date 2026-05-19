@@ -29,12 +29,17 @@ const InvoicesView = ({ page, onGoToQuotation }) => {
     setPerPage,
     viewMode,
     setViewMode,
+    showOnlyMine,
+    setShowOnlyMine,
+    signatureOnly,
+    setSignatureOnly,
     canManageInvoices,
     createDialogOpen,
     quotationSelectionOpen,
     selectedQuotation,
     detailDialogOpen,
     selectedInvoiceId,
+    detailInitialEditMode,
     companyDialogOpen,
     openQuotationSelection,
     closeQuotationSelection,
@@ -43,6 +48,7 @@ const InvoicesView = ({ page, onGoToQuotation }) => {
     handleInvoiceCreateCancel,
     closeCreateDialog,
     handleViewInvoice,
+    handleEditInvoice,
     handleCloseInvoiceDetail,
     openCompanyDialog,
     closeCompanyDialog,
@@ -58,6 +64,10 @@ const InvoicesView = ({ page, onGoToQuotation }) => {
       <InvoicesControlsBar
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        showOnlyMine={showOnlyMine}
+        onShowOnlyMineChange={setShowOnlyMine}
+        signatureOnly={signatureOnly}
+        onSignatureOnlyChange={setSignatureOnly}
         canManageInvoices={canManageInvoices}
         onOpenCompanyDialog={openCompanyDialog}
         onCreateInvoice={openQuotationSelection}
@@ -101,6 +111,7 @@ const InvoicesView = ({ page, onGoToQuotation }) => {
               <InvoiceTableView
                 data={invoices}
                 onViewDetail={handleViewInvoice}
+                onEdit={canManageInvoices ? handleEditInvoice : undefined}
                 onPreviewPDF={handlePreviewPDF}
                 onGoToQuotation={onGoToQuotation}
                 onActionSuccess={handleRefresh}
@@ -159,6 +170,7 @@ const InvoicesView = ({ page, onGoToQuotation }) => {
         open={detailDialogOpen}
         onClose={handleCloseInvoiceDetail}
         invoiceId={selectedInvoiceId}
+        initialEditMode={detailInitialEditMode}
       />
 
       <CompanyManagerDialog open={companyDialogOpen} onClose={closeCompanyDialog} />

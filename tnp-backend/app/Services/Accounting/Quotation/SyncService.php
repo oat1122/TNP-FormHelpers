@@ -2,20 +2,22 @@
 
 namespace App\Services\Accounting\Quotation;
 
-use App\Models\Accounting\Quotation;
 use App\Models\Accounting\DocumentHistory;
-use App\Services\Accounting\InvoiceService;
+use App\Models\Accounting\Invoice;
+use App\Models\Accounting\InvoiceItem;
+use App\Models\Accounting\Quotation;
+use App\Services\Accounting\PdfCacheService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SyncService
 {
+    public function __construct(
+        private PdfCacheService $pdfCacheService,
+    ) {}
+
     /**
      * Sync quotation changes to related invoices immediately (for <=3 invoices)
-     * 
-     * @param Quotation $quotation
-     * @param string|null $userId
-     * @return array
      */
     public function syncToInvoicesImmediately(Quotation $quotation, ?string $userId): array
     {
@@ -36,7 +38,7 @@ class SyncService
                 'progress_total' => $invoices->count(),
                 'progress_current' => 0,
                 'started_by' => $userId,
-                'started_at' => now()
+                'started_at' => now(),
             ]);
 
             $totalUpdated = 0;
@@ -70,14 +72,24 @@ class SyncService
                 $invoice->document_header_type = $quotation->document_header_type ?? $invoice->document_header_type;
 
                 // Delete all existing invoice items and recreate from quotation
-                $deletedCount = \App\Models\Accounting\InvoiceItem::where('invoice_id', $invoice->id)->delete();
+                $deletedCount = InvoiceItem::where('invoice_id', $invoice->id)->delete();
                 $totalItemsDeleted += $deletedCount;
 
-                // Create new invoice items from quotation items
-                $itemsCreated = 0;
+                // Build rows for bulk insert (1 query instead of N). InvoiceItem::insert()
+                // bypasses model events + does not auto-fill timestamps — set them explicitly.
+                $now = now();
+                $rows = [];
                 foreach ($quotation->items as $qItem) {
-                    \App\Models\Accounting\InvoiceItem::create([
-                        'id' => \Illuminate\Support\Str::uuid()->toString(),
+                    // QuotationItem casts item_images to array — encode back to JSON string
+                    // for raw insert (InvoiceItem::insert bypasses Eloquent casts).
+                    $itemImages = $qItem->item_images;
+                    // @phpstan-ignore-next-line - PHPDoc says string|null but cast returns array at runtime
+                    if ($itemImages !== null && ! is_string($itemImages)) {
+                        $itemImages = json_encode($itemImages);
+                    }
+
+                    $rows[] = [
+                        'id' => (string) \Illuminate\Support\Str::uuid(),
                         'invoice_id' => $invoice->id,
                         'quotation_item_id' => $qItem->id,
                         'pricing_request_id' => $qItem->pricing_request_id,
@@ -93,27 +105,48 @@ class SyncService
                         'unit' => $qItem->unit,
                         'discount_percentage' => $qItem->discount_percentage,
                         'discount_amount' => $qItem->discount_amount,
-                        'item_images' => $qItem->item_images,
+                        'item_images' => $itemImages,
                         'notes' => $qItem->notes,
                         'status' => 'draft',
                         'created_by' => $userId,
                         'updated_by' => $userId,
-                    ]);
-                    $itemsCreated++;
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
                 }
 
-                $totalItemsUpdated += $itemsCreated;
+                if (! empty($rows)) {
+                    InvoiceItem::insert($rows);
+                }
+                $totalItemsUpdated += count($rows);
 
-                // Recalculate invoice totals from items
-                $this->recalculateInvoiceTotals($invoice, $quotation);
-                
-                $invoice->save();
+                // Recalculate invoice totals from in-memory quotation items (skip re-query)
+                $this->recalculateInvoiceTotals($invoice, $quotation->items);
+
+                // Stamp sync timestamp so FE can render the "ซิงค์แล้ว" indicator.
+                $invoice->last_synced_at = now();
+
+                // Skip `updated` boot hook to avoid per-save PDF cache invalidate cascade
+                // (5 variants × N invoices). Batch invalidate after loop completes.
+                Invoice::withoutEvents(fn () => $invoice->save());
                 $totalUpdated++;
-                
+
                 // Update sync job progress
                 $syncJob->update([
-                    'progress_current' => $totalUpdated
+                    'progress_current' => $totalUpdated,
                 ]);
+            }
+
+            // Batch invalidate PDF cache for all synced invoices (replaces per-save cascade)
+            foreach ($invoices as $invoice) {
+                try {
+                    $this->pdfCacheService->invalidateAllForDocument($invoice);
+                } catch (\Exception $e) {
+                    Log::warning('SyncService: PDF cache invalidate failed', [
+                        'invoice_id' => $invoice->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             // Mark job as completed
@@ -123,8 +156,8 @@ class SyncService
                 'result_summary' => json_encode([
                     'invoices_updated' => $totalUpdated,
                     'items_deleted' => $totalItemsDeleted,
-                    'items_created' => $totalItemsUpdated
-                ])
+                    'items_created' => $totalItemsUpdated,
+                ]),
             ]);
 
             // Log history
@@ -141,30 +174,28 @@ class SyncService
             return [
                 'success' => true,
                 'job_id' => $syncJob->id,
-                'updated_count' => $totalUpdated
+                'updated_count' => $totalUpdated,
             ];
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             if (isset($syncJob)) {
                 $syncJob->update([
                     'status' => 'failed',
                     'error_message' => $e->getMessage(),
-                    'completed_at' => now()
+                    'completed_at' => now(),
                 ]);
             }
-            
-            Log::error('QuotationService::syncToInvoicesImmediately error: ' . $e->getMessage());
+
+            Log::error('QuotationService::syncToInvoicesImmediately error: '.$e->getMessage());
             throw $e;
         }
     }
 
     /**
      * Queue invoice sync job for background processing (for >3 invoices)
-     * 
-     * @param Quotation $quotation
-     * @param string|null $userId
+     *
      * @return string Sync job ID
      */
     public function queueInvoiceSync(Quotation $quotation, ?string $userId): string
@@ -184,7 +215,7 @@ class SyncService
                 'status' => 'pending',
                 'progress_current' => 0,
                 'progress_total' => count($invoiceIds),
-                'started_by' => $userId
+                'started_by' => $userId,
             ]);
 
             // Dispatch queue job
@@ -202,45 +233,43 @@ class SyncService
                 $userId,
                 json_encode([
                     'sync_job_id' => $syncJob->id,
-                    'invoice_count' => count($invoiceIds)
+                    'invoice_count' => count($invoiceIds),
                 ])
             );
 
             Log::info('Quotation sync job queued', [
                 'quotation_id' => $quotation->id,
                 'sync_job_id' => $syncJob->id,
-                'invoice_count' => count($invoiceIds)
+                'invoice_count' => count($invoiceIds),
             ]);
 
             return $syncJob->id;
 
         } catch (\Exception $e) {
-            Log::error('QuotationService::queueInvoiceSync error: ' . $e->getMessage(), [
+            Log::error('QuotationService::queueInvoiceSync error: '.$e->getMessage(), [
                 'quotation_id' => $quotation->id,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
             throw $e;
         }
     }
 
     /**
-     * Recalculate invoice totals based on its items and quotation settings
-     * 
-     * @param \App\Models\Accounting\Invoice $invoice
-     * @param Quotation $quotation
-     * @return void
+     * Recalculate invoice totals based on quotation items (in-memory) and quotation settings
+     *
+     * @param  \App\Models\Accounting\Invoice  $invoice
+     * @param  \Illuminate\Support\Collection<int, \App\Models\Accounting\QuotationItem>  $items
+     *                                                                                            Source items (quotation items) — fields read: unit_price, quantity, discount_amount, discount_percentage
      */
-    protected function recalculateInvoiceTotals($invoice, Quotation $quotation): void
+    protected function recalculateInvoiceTotals($invoice, $items): void
     {
-        // Calculate subtotal from invoice items
-        $items = \App\Models\Accounting\InvoiceItem::where('invoice_id', $invoice->id)->get();
-        
+        // Calculate subtotal in-memory (skip re-query of newly-inserted invoice items)
         $subtotal = 0;
         foreach ($items as $item) {
-            $itemTotal = ($item->unit_price * $item->quantity);
-            $itemTotal -= $item->discount_amount;
+            $itemTotal = ((float) $item->unit_price * (float) $item->quantity);
+            $itemTotal -= (float) $item->discount_amount;
             if ($item->discount_percentage > 0) {
-                $itemTotal -= ($itemTotal * $item->discount_percentage / 100);
+                $itemTotal -= ($itemTotal * (float) $item->discount_percentage / 100);
             }
             $subtotal += $itemTotal;
         }
@@ -250,40 +279,40 @@ class SyncService
         $hasVat = $invoice->has_vat ?? true;
         $vatRate = $hasVat ? ($invoice->vat_percentage ?? 7) : 0;
         $pricingMode = $invoice->pricing_mode ?? 'net';
-        
+
         $netSubtotal = $subtotal;
         $vatAmount = 0;
-        
+
         if ($pricingMode === 'vat_included' && $hasVat && $vatRate > 0) {
             // VAT is included in prices - extract it
             $vatMultiplier = 1 + ($vatRate / 100);
             $netSubtotal = round($subtotal / $vatMultiplier, 2);
             $vatAmount = $subtotal - $netSubtotal;
-        } else if ($pricingMode === 'net' && $hasVat && $vatRate > 0) {
+        } elseif ($pricingMode === 'net' && $hasVat && $vatRate > 0) {
             // VAT is added on top
             $vatAmount = round($netSubtotal * ($vatRate / 100), 2);
         }
-        
+
         $totalAmount = round($netSubtotal + $vatAmount, 2);
-        
+
         // Calculate withholding tax if applicable
         $withholdingTaxAmount = 0;
         if ($invoice->has_withholding_tax && ($invoice->withholding_tax_percentage ?? 0) > 0) {
             $withholdingTaxAmount = round($netSubtotal * ($invoice->withholding_tax_percentage / 100), 2);
         }
-        
+
         $finalTotalAmount = round($totalAmount - $withholdingTaxAmount, 2);
-        
+
         // Calculate deposit amount
         $depositAmount = 0;
         $depositPercentage = $invoice->deposit_percentage ?? 0;
-        
+
         if ($depositPercentage > 0) {
             $depositMode = $invoice->deposit_mode ?? 'percentage';
             $depositBase = ($depositMode === 'before') ? $netSubtotal : $totalAmount;
             $depositAmount = round($depositBase * ($depositPercentage / 100), 2);
         }
-        
+
         // Update invoice fields
         $invoice->subtotal = $subtotal;
         $invoice->subtotal_before_vat = $subtotal;
@@ -293,7 +322,7 @@ class SyncService
         $invoice->withholding_tax_amount = $withholdingTaxAmount;
         $invoice->final_total_amount = $finalTotalAmount;
         $invoice->deposit_amount = $depositAmount;
-        
+
         // Calculate deposit base before VAT for the deposit invoice type
         if ($depositPercentage > 0 && $depositMode === 'before') {
             $invoice->deposit_amount_before_vat = round($netSubtotal * ($depositPercentage / 100), 2);

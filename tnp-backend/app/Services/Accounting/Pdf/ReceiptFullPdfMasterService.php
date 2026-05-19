@@ -104,8 +104,6 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
         $invoiceForView = clone $invoice;
         $invoiceForView->sample_images = []; // ไม่แสดงรูปภาพตัวอย่างในเอกสารทางการ
 
-        \Log::info('🔍 ReceiptFullPDF buildViewData - Full mode metadata: '.json_encode($metadata));
-
         // **** Key หลักของ Array ต้องตรงกับที่ quotation-master.blade.php คาดหวัง ****
         return [
             'quotation' => $invoiceForView, // ใช้ตัวที่เคลียร์ sample_images แล้ว

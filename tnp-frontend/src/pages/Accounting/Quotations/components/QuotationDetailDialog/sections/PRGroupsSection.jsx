@@ -34,7 +34,6 @@ const PRGroupsSection = ({
   prAutofillMap,
   isEditing,
   canEdit,
-  onToggleEdit,
   onEditCustomer,
   onAddNewGroup,
   groupHandlers,
@@ -209,19 +208,10 @@ const PRGroupsSection = ({
               <Typography variant="subtitle1" fontWeight={700}>
                 การคำนวณราคา
               </Typography>
-              {canEdit && (
-                <>
-                  {onToggleEdit && (
-                    <SecondaryButton size="small" startIcon={<EditIcon />} onClick={onToggleEdit}>
-                      {isEditing ? "ยกเลิกแก้ไข" : "แก้ไข"}
-                    </SecondaryButton>
-                  )}
-                  {isEditing && onAddNewGroup && (
-                    <SecondaryButton size="small" startIcon={<AddIcon />} onClick={onAddNewGroup}>
-                      เพิ่มงานใหม่
-                    </SecondaryButton>
-                  )}
-                </>
+              {canEdit && isEditing && onAddNewGroup && (
+                <SecondaryButton size="small" startIcon={<AddIcon />} onClick={onAddNewGroup}>
+                  เพิ่มงานใหม่
+                </SecondaryButton>
               )}
             </Box>
           </SectionHeader>

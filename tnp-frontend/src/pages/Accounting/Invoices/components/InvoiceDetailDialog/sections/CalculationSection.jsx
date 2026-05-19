@@ -63,7 +63,7 @@ const CalculationSection = ({
             <Typography variant="subtitle1" fontWeight={700}>
               การคำนวณราคา
             </Typography>
-            {!validation.isReadOnly && (
+            {!validation.isReadOnly && setIsEditing && (
               <SecondaryButton
                 size="small"
                 startIcon={<EditIcon />}

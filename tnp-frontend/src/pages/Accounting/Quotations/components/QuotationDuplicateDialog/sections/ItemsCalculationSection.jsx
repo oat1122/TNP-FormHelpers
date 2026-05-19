@@ -28,6 +28,7 @@ const ItemsCalculationSection = ({
   setters,
   financials,
   hideCustomerCard = false,
+  isEditing = true,
 }) => {
   return (
     <PRGroupsSection
@@ -35,9 +36,9 @@ const ItemsCalculationSection = ({
       workName={workName}
       quotationNumber=""
       items={items}
-      activeGroups={groups}
+      activeGroups={isEditing ? groups : items}
       prAutofillMap={prAutofillMap}
-      isEditing={true}
+      isEditing={isEditing}
       canEdit={canEdit}
       onEditCustomer={onEditCustomer}
       onAddNewGroup={onAddNewGroup}
@@ -45,7 +46,7 @@ const ItemsCalculationSection = ({
       hideCustomerCard={hideCustomerCard}
       financialControlsNode={
         <FinancialControlsSection
-          isEditing={true}
+          isEditing={isEditing}
           financials={financials}
           formState={formState}
           setters={setters}

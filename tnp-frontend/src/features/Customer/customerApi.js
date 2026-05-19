@@ -350,26 +350,6 @@ export const customerApi = createApi({
         };
       },
     }),
-    // KPI Recall History - get historical recall snapshot data
-    getKpiRecallHistory: builder.query({
-      query: (params) => {
-        const queryParams = {
-          month: params.month,
-          status: params.status,
-          source_filter: params.source_filter || "all",
-        };
-
-        if (params.user_id) {
-          queryParams.user_id = params.user_id;
-        }
-
-        return {
-          url: "/customers/kpi/recall-history",
-          method: "GET",
-          params: queryParams,
-        };
-      },
-    }),
   }),
 });
 
@@ -399,5 +379,4 @@ export const {
   useGetNotebookKpiSummaryQuery,
   useGetNotebookKpiDetailsQuery,
   useGetKpiRecallDetailsQuery,
-  useGetKpiRecallHistoryQuery,
 } = customerApi;

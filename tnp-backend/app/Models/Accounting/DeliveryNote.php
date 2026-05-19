@@ -2,23 +2,18 @@
 
 namespace App\Models\Accounting;
 
-use App\Services\Accounting\PdfCacheService;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Company;
 use App\Models\MasterCustomer;
 use App\Models\User;
-use App\Models\Company;
-use App\Models\Accounting\Invoice;
-use App\Models\Accounting\InvoiceItem;
-use App\Models\Accounting\Receipt;
-use App\Models\Accounting\DocumentHistory;
-use App\Models\Accounting\DocumentAttachment;
+use App\Services\Accounting\PdfCacheService;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class DeliveryNote
- * 
+ *
  * @property string $id
  * @property string $number
  * @property string|null $receipt_id
@@ -50,7 +45,9 @@ use App\Models\Accounting\DocumentAttachment;
 class DeliveryNote extends Model
 {
     protected $table = 'delivery_notes';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -87,14 +84,14 @@ class DeliveryNote extends Model
         'sender_company_id',
         'manage_by',
         'created_by',
-        'delivered_by'
+        'delivered_by',
     ];
 
     protected $casts = [
         'delivery_date' => 'date',
         'delivered_at' => 'datetime',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     // Include computed attributes in JSON
@@ -107,7 +104,7 @@ class DeliveryNote extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) \Illuminate\Support\Str::uuid();
@@ -116,26 +113,24 @@ class DeliveryNote extends Model
                 $model->company_id = optional(\App\Models\Company::where('is_active', true)->first())->id;
             }
         });
-        
+
         // Invalidate PDF cache when delivery note is updated
         static::updated(function ($deliveryNote) {
             try {
-                $cacheService = app(PdfCacheService::class);
-                $cacheService->invalidate('delivery_note', $deliveryNote->id);
-                Log::info("DeliveryNote updated - PDF cache invalidated", ['delivery_note_id' => $deliveryNote->id]);
+                app(PdfCacheService::class)->invalidateAllForDocument($deliveryNote);
+                Log::info('DeliveryNote updated - PDF cache invalidated', ['delivery_note_id' => $deliveryNote->id]);
             } catch (\Exception $e) {
-                Log::warning("Failed to invalidate PDF cache on delivery note update: " . $e->getMessage());
+                Log::warning('Failed to invalidate PDF cache on delivery note update: '.$e->getMessage());
             }
         });
-        
+
         // Invalidate PDF cache when delivery note is deleted
         static::deleted(function ($deliveryNote) {
             try {
-                $cacheService = app(PdfCacheService::class);
-                $cacheService->invalidate('delivery_note', $deliveryNote->id);
-                Log::info("DeliveryNote deleted - PDF cache invalidated", ['delivery_note_id' => $deliveryNote->id]);
+                app(PdfCacheService::class)->invalidateAllForDocument($deliveryNote);
+                Log::info('DeliveryNote deleted - PDF cache invalidated', ['delivery_note_id' => $deliveryNote->id]);
             } catch (\Exception $e) {
-                Log::warning("Failed to invalidate PDF cache on delivery note delete: " . $e->getMessage());
+                Log::warning('Failed to invalidate PDF cache on delivery note delete: '.$e->getMessage());
             }
         });
     }
@@ -226,7 +221,7 @@ class DeliveryNote extends Model
     public function documentHistory(): HasMany
     {
         return $this->hasMany(DocumentHistory::class, 'document_id', 'id')
-                    ->where('document_type', 'delivery_note');
+            ->where('document_type', 'delivery_note');
     }
 
     /**
@@ -235,7 +230,7 @@ class DeliveryNote extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(DocumentAttachment::class, 'document_id', 'id')
-                    ->where('document_type', 'delivery_note');
+            ->where('document_type', 'delivery_note');
     }
 
     /**
@@ -284,7 +279,7 @@ class DeliveryNote extends Model
      */
     public function getCustomerFullNameAttribute()
     {
-        return trim($this->customer_firstname . ' ' . $this->customer_lastname);
+        return trim($this->customer_firstname.' '.$this->customer_lastname);
     }
 
     /**
@@ -296,20 +291,27 @@ class DeliveryNote extends Model
     public function getCustomerContactNameAttribute()
     {
         $cust = $this->relationLoaded('customer') ? $this->customer : $this->customer()->first();
-        if (!$cust) return null;
+        if (! $cust) {
+            return null;
+        }
 
         $clean = function ($v) {
-            $t = trim((string)($v ?? ''));
-            if ($t === '') return '';
+            $t = trim((string) ($v ?? ''));
+            if ($t === '') {
+                return '';
+            }
             $n = str_replace(['—', '–'], '-', $t);
-            if (preg_match('/^-+$/', $n)) return '';
+            if (preg_match('/^-+$/', $n)) {
+                return '';
+            }
+
             return $n;
         };
 
         $first = $clean($cust->cus_firstname ?? null);
         $last = $clean($cust->cus_lastname ?? null);
         $nick = $clean($cust->cus_name ?? null);
-        $full = trim($first . ' ' . $last);
+        $full = trim($first.' '.$last);
 
         return $full !== '' ? $full : ($nick !== '' ? $nick : null);
     }
@@ -320,10 +322,13 @@ class DeliveryNote extends Model
     public function getManagerFullNameAttribute()
     {
         $mgr = $this->relationLoaded('manager') ? $this->manager : $this->manager()->first();
-        if (!$mgr) return null;
-        $first = trim((string)($mgr->user_firstname ?? ''));
-        $last = trim((string)($mgr->user_lastname ?? ''));
-        $full = trim($first . ' ' . $last);
+        if (! $mgr) {
+            return null;
+        }
+        $first = trim((string) ($mgr->user_firstname ?? ''));
+        $last = trim((string) ($mgr->user_lastname ?? ''));
+        $full = trim($first.' '.$last);
+
         return $full !== '' ? $full : ($mgr->username ?? null);
     }
 
@@ -342,17 +347,17 @@ class DeliveryNote extends Model
     {
         $this->status = 'delivered';
         $this->delivered_at = now();
-        
+
         if ($deliveredBy) {
             $this->delivered_by = $deliveredBy;
         }
-        
+
         if ($notes) {
             $this->delivery_notes = $notes;
         }
-        
+
         $this->save();
-        
+
         return $this;
     }
 
@@ -367,9 +372,9 @@ class DeliveryNote extends Model
             'in_transit' => 'อยู่ระหว่างขนส่ง',
             'delivered' => 'ส่งแล้ว',
             'completed' => 'เสร็จสิ้น',
-            'failed' => 'ไม่สำเร็จ'
+            'failed' => 'ไม่สำเร็จ',
         ];
-        
+
         return $labels[$this->status] ?? $this->status;
     }
 
@@ -381,9 +386,9 @@ class DeliveryNote extends Model
         $labels = [
             'self_delivery' => 'ส่งเอง',
             'courier' => 'บริษัทขนส่ง',
-            'customer_pickup' => 'ลูกค้ามารับเอง'
+            'customer_pickup' => 'ลูกค้ามารับเอง',
         ];
-        
+
         return $labels[$this->delivery_method] ?? $this->delivery_method;
     }
 
@@ -392,28 +397,18 @@ class DeliveryNote extends Model
      */
     public function getTrackingUrlAttribute()
     {
-        if (!$this->tracking_number || $this->delivery_method !== 'courier') {
+        if (! $this->tracking_number || $this->delivery_method !== 'courier') {
             return null;
         }
 
         // Add tracking URLs for popular courier services in Thailand
         $trackingUrls = [
-            'Kerry Express' => 'https://th.kerryexpress.com/en/track/?track=' . $this->tracking_number,
-            'Thailand Post' => 'https://track.thailandpost.co.th/?trackNumber=' . $this->tracking_number,
-            'Flash Express' => 'https://www.flashexpress.co.th/tracking/?se=' . $this->tracking_number,
-            'J&T Express' => 'https://www.jtexpress.co.th/index/query/gzquery.html?bills=' . $this->tracking_number,
+            'Kerry Express' => 'https://th.kerryexpress.com/en/track/?track='.$this->tracking_number,
+            'Thailand Post' => 'https://track.thailandpost.co.th/?trackNumber='.$this->tracking_number,
+            'Flash Express' => 'https://www.flashexpress.co.th/tracking/?se='.$this->tracking_number,
+            'J&T Express' => 'https://www.jtexpress.co.th/index/query/gzquery.html?bills='.$this->tracking_number,
         ];
 
         return $trackingUrls[$this->courier_company] ?? null;
     }
 }
-
-
-
-
-
-
-
-
-
-

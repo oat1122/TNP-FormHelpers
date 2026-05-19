@@ -112,7 +112,14 @@ class ManagementService
     public function getList(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
         try {
-            $query = Invoice::with(['quotation', 'customer', 'documentHistory', 'manager', 'items'])
+            $query = Invoice::with([
+                'quotation',
+                'customer',
+                'documentHistory',
+                'manager',
+                'items',
+                'deliveryNotes',
+            ])
                 ->select('invoices.*')
                 ->leftJoin('quotations', 'quotations.id', '=', 'invoices.quotation_id')
                 ->addSelect(DB::raw('quotations.number as quotation_number'));
@@ -184,6 +191,44 @@ class ManagementService
             if (! empty($filters['overdue'])) {
                 $query->where('invoices.due_date', '<', now())
                     ->whereIn('invoices.status', ['sent', 'partial_paid']);
+            }
+
+            // "Only mine" (UI label: "แสดงเฉพาะฉัน"):
+            // For invoices "mine" = the sales person assigned to the invoice — i.e.
+            // `inv_manage_by` (auto-populated from the parent quotation's creator),
+            // NOT `created_by` which is whoever issued the invoice (often admin/account).
+            // The user UUID is passed from the controller so the service stays
+            // free of Request/auth dependencies.
+            $onlyMine = $filters['only_mine'] ?? null;
+            if ($onlyMine !== null && $onlyMine !== '' && filter_var($onlyMine, FILTER_VALIDATE_BOOLEAN)) {
+                $currentUserId = $filters['current_user_id'] ?? null;
+                if (! empty($currentUserId)) {
+                    $query->where('invoices.inv_manage_by', $currentUserId);
+                }
+            }
+
+            // "Has evidence" (UI label: "แสดงเฉพาะใบที่มีหลักฐานการเซ็น"):
+            // For invoices the relevant column is `evidence_files` (payment / signed
+            // delivery proofs uploaded against the invoice). Quotations use
+            // `signature_images` for the same UX, but on invoices that JSON column is
+            // a different signal entirely.
+            if (array_key_exists('signature_uploaded', $filters)
+                && $filters['signature_uploaded'] !== null
+                && $filters['signature_uploaded'] !== ''
+            ) {
+                $val = strtolower((string) $filters['signature_uploaded']);
+                $truthy = in_array($val, ['1', 'true', 'yes', 'on'], true);
+                if ($truthy) {
+                    $query->whereNotNull('invoices.evidence_files')
+                        ->whereRaw('JSON_VALID(invoices.evidence_files)')
+                        ->whereRaw('JSON_LENGTH(invoices.evidence_files) > 0');
+                } else {
+                    $query->where(function ($q) {
+                        $q->whereNull('invoices.evidence_files')
+                            ->orWhereRaw('NOT JSON_VALID(invoices.evidence_files)')
+                            ->orWhereRaw('JSON_LENGTH(invoices.evidence_files) = 0');
+                    });
+                }
             }
 
             return $query->orderBy('invoices.created_at', 'desc')->paginate($perPage);

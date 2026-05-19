@@ -4,11 +4,11 @@ import { formatDate as commonFormatDate } from "./notebookCommon";
 
 export const styles = StyleSheet.create({
   page: {
-    padding: 24,
-    paddingBottom: 40,
+    padding: 18,
+    paddingBottom: 32,
     fontSize: 9,
     fontFamily: "Kanit",
-    lineHeight: 1.45,
+    lineHeight: 1.25,
   },
   header: {
     marginBottom: 20,
@@ -45,8 +45,8 @@ export const styles = StyleSheet.create({
     backgroundColor: "#fafafa",
   },
   tableCell: {
-    paddingVertical: 8,
-    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    paddingHorizontal: 3,
     borderWidth: 0.5,
     borderColor: "#ddd",
     justifyContent: "center",
@@ -69,7 +69,7 @@ export const styles = StyleSheet.create({
   },
   cellText: {
     fontSize: 8,
-    lineHeight: 1.6,
+    lineHeight: 1.15,
     maxWidth: "100%",
     flexShrink: 1,
   },
@@ -85,21 +85,21 @@ export const styles = StyleSheet.create({
   primaryText: {
     fontSize: 8,
     fontWeight: 600,
-    lineHeight: 1.45,
+    lineHeight: 1.15,
     color: "#111",
     maxWidth: "100%",
     flexShrink: 1,
   },
   secondaryText: {
     fontSize: 8,
-    lineHeight: 1.45,
+    lineHeight: 1.15,
     color: "#333",
     maxWidth: "100%",
     flexShrink: 1,
   },
   tertiaryText: {
     fontSize: 7,
-    lineHeight: 1.45,
+    lineHeight: 1.15,
     color: "#999",
     maxWidth: "100%",
     flexShrink: 1,
@@ -134,10 +134,36 @@ export const styles = StyleSheet.create({
   actionText: {
     fontFamily: "Sarabun",
     fontSize: 8,
-    lineHeight: 1.35,
+    lineHeight: 1.15,
     color: "#333",
     maxWidth: "100%",
     flexShrink: 1,
+  },
+  dailySummaryRow: {
+    flexDirection: "row",
+    backgroundColor: "#e3f2fd",
+    borderWidth: 0.5,
+    borderColor: "#90caf9",
+    paddingVertical: 2.5,
+    paddingHorizontal: 5,
+    marginTop: 1.5,
+  },
+  dailySummaryDate: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: "#0d47a1",
+    marginRight: 8,
+  },
+  dailySummaryItem: {
+    fontSize: 8,
+    color: "#1565c0",
+    marginRight: 10,
+  },
+  dailySummaryTotal: {
+    fontSize: 8,
+    fontWeight: 700,
+    color: "#0d47a1",
+    marginLeft: "auto",
   },
   statusBadge: {
     maxWidth: "100%",

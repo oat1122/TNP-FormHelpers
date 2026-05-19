@@ -1,5 +1,6 @@
 import {
   Assignment as OverviewIcon,
+  Badge as EvidenceIcon,
   CompareArrows as SideIcon,
   Inventory2 as ItemsIcon,
   Payment as PaymentIcon,
@@ -11,6 +12,7 @@ import { useState } from "react";
 import InvoiceSideTabs from "../../subcomponents/InvoiceSideTabs";
 import CalculationSection from "../sections/CalculationSection";
 import CustomerSection, { CompactReadOnlyView } from "../sections/CustomerSection";
+import EvidenceSection from "../sections/EvidenceSection";
 import PaymentTermsSection from "../sections/PaymentTermsSection";
 
 /**
@@ -34,10 +36,11 @@ const TAB_DEFS = [
   { id: "items", label: "รายการ + คำนวณ", Icon: ItemsIcon },
   { id: "side", label: "ก่อน-หลัง", Icon: SideIcon },
   { id: "payment", label: "เงื่อนไขชำระ", Icon: PaymentIcon },
+  { id: "evidence", label: "หลักฐาน", Icon: EvidenceIcon },
 ];
 
-const EditModeTabs = ({ sectionProps, sideEditProps }) => {
-  const [activeTab, setActiveTab] = useState("customer"); // start at customer (most-used edit target)
+const EditModeTabs = ({ sectionProps, sideEditProps, initialTab = "customer" }) => {
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   const renderTab = () => {
     switch (activeTab) {
@@ -51,6 +54,8 @@ const EditModeTabs = ({ sectionProps, sideEditProps }) => {
         return <InvoiceSideTabs {...sideEditProps} />;
       case "payment":
         return <PaymentTermsSection {...sectionProps.paymentTerms} />;
+      case "evidence":
+        return <EvidenceSection {...sectionProps.evidence} />;
       default:
         return null;
     }

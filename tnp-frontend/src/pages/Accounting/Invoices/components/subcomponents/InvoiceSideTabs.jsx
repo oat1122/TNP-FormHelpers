@@ -53,6 +53,7 @@ const InvoiceSideTabs = ({
   warnings, // { before: [...], after: [...] } from useInvoiceSideValidation
   activeTab, // "before" | "after"
   onTabChange, // (newTab) => void
+  readOnly = false,
 }) => {
   const beforeWarnings = warnings?.before ?? [];
   const afterWarnings = warnings?.after ?? [];
@@ -113,6 +114,7 @@ const InvoiceSideTabs = ({
           onChange={setBeforeField}
           invoice={invoice}
           warnings={beforeWarnings}
+          readOnly={readOnly}
         />
       ) : (
         <InvoiceSidePanel
@@ -121,6 +123,7 @@ const InvoiceSideTabs = ({
           onChange={setAfterField}
           invoice={invoice}
           warnings={afterWarnings}
+          readOnly={readOnly}
         />
       )}
     </Box>

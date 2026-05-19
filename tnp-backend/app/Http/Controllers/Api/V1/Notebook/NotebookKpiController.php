@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Notebook;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\V1\Notebook\NotebookAllTabStatsRequest;
 use App\Http\Requests\V1\Notebook\NotebookDetailsRequest;
 use App\Http\Requests\V1\Notebook\NotebookSummaryRequest;
 use App\Services\Notebook\NotebookKpiService;
@@ -49,6 +50,39 @@ class NotebookKpiController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error fetching notebook summary: '.$exception->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function allTabStats(NotebookAllTabStatsRequest $request): JsonResponse
+    {
+        try {
+            $filters = $request->only([
+                'search',
+                'start_date',
+                'end_date',
+                'date_filter_by',
+                'status',
+                'action',
+                'entry_type',
+                'manage_by',
+            ]);
+
+            $stats = $this->notebookKpiService->getAllTabStats($filters, $request->user());
+
+            return response()->json([
+                'success' => true,
+                'data' => $stats,
+            ]);
+        } catch (\Exception $exception) {
+            Log::error('Notebook All-Tab Stats error: '.$exception->getMessage(), [
+                'user_id' => $request->user()?->user_id,
+                'trace' => $exception->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่สามารถดึงสรุปยอด Lead ทั้งหมดได้',
             ], 500);
         }
     }
